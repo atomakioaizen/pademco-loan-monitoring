@@ -7,6 +7,8 @@ import ReportsTableClient from "./ReportsTableClient";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Reports Hub - PADEMCO",
 };

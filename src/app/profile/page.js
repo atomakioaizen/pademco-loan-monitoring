@@ -5,6 +5,8 @@ import AppLayout from "@/components/AppLayout";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "My Profile Settings - PADEMCO",
 };

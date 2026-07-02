@@ -5,7 +5,7 @@ import pg from "pg";
 const globalForPrisma = globalThis;
 
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL environment variable is not set.");
+  console.warn("WARNING: DATABASE_URL environment variable is not set. Database connections will fail at runtime.");
 }
 
 function createPrismaClient() {

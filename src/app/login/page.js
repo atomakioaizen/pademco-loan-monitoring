@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import LoginClient from "./LoginClient";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Sign In - PADEMCO Loan Monitoring System",
   description: "Sign in to the PADEMCO DENR Employee Airline Ticket Loan System portal.",

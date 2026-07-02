@@ -6,6 +6,8 @@ import AdminDashboardClient from "./AdminDashboardClient";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Dashboard - PADEMCO Airline Loan Monitoring",
 };

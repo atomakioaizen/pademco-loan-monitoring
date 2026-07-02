@@ -2,6 +2,8 @@ import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Official Receipt Print - PADEMCO",
 };

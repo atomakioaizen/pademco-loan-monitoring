@@ -11,6 +11,8 @@ import { revalidatePath } from "next/cache";
 import fs from "fs/promises";
 import path from "path";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "System Settings & User Console - PADEMCO",
 };

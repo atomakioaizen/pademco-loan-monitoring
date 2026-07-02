@@ -6,6 +6,8 @@ import BookingsTabsClient from "./BookingsTabsClient";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Booking & Loan Management - PADEMCO",
 };

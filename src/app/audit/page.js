@@ -3,6 +3,8 @@ import { getSession } from "@/lib/auth";
 import AppLayout from "@/components/AppLayout";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Audit Trail - PADEMCO",
 };
