@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-primary: var(--color-brand-primary);
+  --color-primary-hover: var(--color-brand-primary-hover);
+  --color-primary-dark: var(--color-brand-primary-dark);
+  --color-primary-light: var(--color-brand-primary-light);
+  
+  --color-success: #15803d;
+  --color-success-hover: #166534;
+  --color-success-dark: #14532d;
+  --color-success-light: #f0fdf4;
+  
+  --color-warning: #b45309;
+  --color-warning-dark: #78350f;
+  --color-warning-light: #fef3c7;
+  
+  --color-danger: #be123c;
+  --color-danger-dark: #881337;
+  --color-danger-light: #fff1f2;
+
+  --color-background-gray: #f8fafc;
+}
+
+:root {
+  --color-brand-primary: #1e3a8a;
+  --color-brand-primary-hover: #1e40af;
+  --color-brand-primary-dark: #172554;
+  --color-brand-primary-light: #eff6ff;
+  
+  --background: #f8fafc;
+  --foreground: #0f172a;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Print Friendly Utilities */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+  
+  .print-card {
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    color: #000000 !important;
+    page-break-inside: avoid;
+  }
+
+  .print-header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    margin-bottom: 2rem !important;
+  }
+}
+
+.print-only {
+  display: none;
+}

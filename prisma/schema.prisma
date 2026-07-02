@@ -1,0 +1,170 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+model User {
+  id                 String                   @id @default(uuid())
+  username           String                   @unique
+  name               String
+  passwordHash       String
+  role               String                   // "ADMIN", "CASHIER", "VIEWER", "AGENT"
+  status             String                   @default("APPROVED") // "PENDING", "APPROVED", "DECLINED"
+  employeeId         String?                  @unique
+  employee           Employee?                @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  auditLogs          AuditLog[]
+  payments           Payment[]
+  agentBookings      Booking[]                @relation("AgentBookings")
+  commissionRate     Float                    @default(75)
+  commissionPayments AgentCommissionPayment[]
+}
+
+model Office {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  employees Employee[]
+}
+
+model Airline {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  bookings  Booking[]
+}
+
+model Employee {
+  id            String    @id @default(uuid())
+  employeeId    String    @unique
+  fullName      String
+  officeId      String
+  office        Office    @relation(fields: [officeId], references: [id])
+  position      String
+  contactNumber String
+  birthDate     String?
+  gender        String?
+  email         String?
+  govIdType     String?
+  govIdNumber   String?
+  status        String    @default("ACTIVE") // "ACTIVE", "INACTIVE"
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  bookings      Booking[]
+  user          User?
+}
+
+model Booking {
+  id              String           @id @default(uuid())
+  referenceNumber String           @unique
+  employeeId      String
+  employee        Employee         @relation(fields: [employeeId], references: [id])
+  airlineId       String
+  airline         Airline          @relation(fields: [airlineId], references: [id])
+  destination     String
+  travelDate      DateTime         // Outbound travel date
+  outboundTime    String?          // Outbound departure time
+  returnDate      DateTime?        // Inbound travel date (for ROUND_TRIP)
+  returnTime      String?          // Inbound departure time (for ROUND_TRIP)
+  ticketCost      Float
+  serviceFee      Float            @default(0)
+  tripType        String           @default("ONE_WAY") // "ONE_WAY" or "ROUND_TRIP"
+  flightCount     Int              @default(1)        // 1 for ONE_WAY, 2 for ROUND_TRIP
+  remarks         String?
+  isArchived            Boolean          @default(false)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  loan                  Loan?
+  histories             BookingHistory[]
+  bookedById            String?
+  bookedBy              User?            @relation("AgentBookings", fields: [bookedById], references: [id])
+  passengerName         String?
+  passengerRelationship String?
+}
+
+model Loan {
+  id                 String    @id @default(uuid())
+  bookingId          String    @unique
+  booking            Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  principalAmount    Float
+  interestType       String    @default("PERCENT") // "FIXED", "PERCENT"
+  interestRate       Float     @default(0) // fixed amount or percentage rate
+  interestAmount     Float     @default(0)
+  totalAmountPayable Float
+  monthlyInstallment Float
+  remainingBalance   Float
+  dueDate            DateTime
+  status             String    @default("ACTIVE") // "ACTIVE", "FULLY_PAID", "OVERDUE"
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  payments           Payment[]
+}
+
+model Payment {
+  id             String   @id @default(uuid())
+  loanId         String
+  loan           Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  receiptNumber  String   @unique
+  amountPaid     Float
+  paymentDate    DateTime @default(now())
+  paymentMethod  String   @default("CASH") // "CASH", "GCASH", "BANK_TRANSFER"
+  remarks        String?
+  cashierId      String
+  cashier        User     @relation(fields: [cashierId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String   // "CREATE", "UPDATE", "DELETE", "PAYMENT", "LOGIN", etc.
+  resource  String   // "BOOKING", "LOAN", "EMPLOYEE", "PAYMENT", etc.
+  details   String   // JSON string or summary
+  createdAt DateTime @default(now())
+}
+
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BookingHistory {
+  id         String   @id @default(uuid())
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  changeLog  String
+  updatedBy  String
+  createdAt  DateTime @default(now())
+}
+
+model AgentCommissionPayment {
+  id           String   @id @default(uuid())
+  agentId      String
+  agent        User     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  monthYear    String   // format "YYYY-MM", e.g. "2026-05"
+  status       String   // "PAID" or "UNPAID"
+  paidAt       DateTime?
+  paidById     String?
+  paidRate     Float    // The commission rate per booking at the time of payment
+  amount       Float    // Total commission amount paid
+  bookingCount Int      // Total bookings count at payment time
+  remarks      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([agentId, monthYear])
+}
