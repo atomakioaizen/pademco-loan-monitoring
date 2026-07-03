@@ -9,17 +9,21 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function RootLayout({ children }) {
-  const settingsList = await db.systemSetting.findMany({
-    where: { key: { in: ["brand_color", "system_logo"] } },
-  });
-  
-  const settings = settingsList.reduce((acc, curr) => {
-    acc[curr.key] = curr.value;
-    return acc;
-  }, {});
-
-  const customColor = settings.brand_color || "#1e3a8a";
-  const customLogoUrl = settings.system_logo || "";
+  let customColor = "#1e3a8a";
+  let customLogoUrl = "";
+  try {
+    const settingsList = await db.systemSetting.findMany({
+      where: { key: { in: ["brand_color", "system_logo"] } },
+    });
+    const settings = settingsList.reduce((acc, curr) => {
+      acc[curr.key] = curr.value;
+      return acc;
+    }, {});
+    customColor = settings.brand_color || "#1e3a8a";
+    customLogoUrl = settings.system_logo || "";
+  } catch (e) {
+    // DB not ready — use defaults
+  }
 
   return (
     <html lang="en" className="h-full antialiased">
