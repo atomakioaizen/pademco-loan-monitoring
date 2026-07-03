@@ -41,9 +41,7 @@ export async function loginAction(prevState, formData) {
     await logAction(user.id, "LOGIN", "USER", `User ${user.username} logged in successfully.`);
   } catch (error) {
     console.error("Login Server Action error:", error);
-    // Temporarily show error details for debugging
-    const msg = error?.message || "Unknown error";
-    return { error: `DB Error: ${msg.substring(0, 120)}` };
+    return { error: "An unexpected error occurred. Please try again." };
   }
 
   // Return redirect target — client handles navigation via router.push()
