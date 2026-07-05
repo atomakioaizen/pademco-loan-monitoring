@@ -61,6 +61,8 @@ model Employee {
   updatedAt     DateTime  @updatedAt
   bookings      Booking[]
   user          User?
+
+  @@index([officeId])
 }
 
 model Booking {
@@ -89,6 +91,10 @@ model Booking {
   bookedBy              User?            @relation("AgentBookings", fields: [bookedById], references: [id])
   passengerName         String?
   passengerRelationship String?
+
+  @@index([employeeId])
+  @@index([airlineId])
+  @@index([bookedById])
 }
 
 model Loan {
@@ -107,6 +113,8 @@ model Loan {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   payments           Payment[]
+
+  @@index([bookingId])
 }
 
 model Payment {
@@ -122,6 +130,9 @@ model Payment {
   cashier        User     @relation(fields: [cashierId], references: [id])
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  @@index([loanId])
+  @@index([cashierId])
 }
 
 model AuditLog {
@@ -132,6 +143,8 @@ model AuditLog {
   resource  String   // "BOOKING", "LOAN", "EMPLOYEE", "PAYMENT", etc.
   details   String   // JSON string or summary
   createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model SystemSetting {
@@ -149,6 +162,8 @@ model BookingHistory {
   changeLog  String
   updatedBy  String
   createdAt  DateTime @default(now())
+
+  @@index([bookingId])
 }
 
 model AgentCommissionPayment {
@@ -167,4 +182,5 @@ model AgentCommissionPayment {
   updatedAt    DateTime @updatedAt
 
   @@unique([agentId, monthYear])
+  @@index([agentId])
 }
