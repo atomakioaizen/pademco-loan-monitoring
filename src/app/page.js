@@ -173,7 +173,9 @@ export default async function DashboardPage({ searchParams }) {
   endOfMonth.setDate(0);
   endOfMonth.setHours(23, 59, 59, 999);
 
-  // Run all count and aggregate queries in parallel to avoid N+1 query blocking
+  // Optimized database metrics retrieval.
+  // Instead of querying all loans and payments into JS memory to calculate profit,
+  // we do parallel database aggregation queries, saving seconds of round-trips and memory overhead.
   const [
     activeLoansCount,
     fullyPaidCount,
@@ -182,7 +184,7 @@ export default async function DashboardPage({ searchParams }) {
     totalCollectionsAgg,
     dueThisMonthCount,
     employeesWithLoansCount,
-    allLoansForProfit
+    profitResult
   ] = await Promise.all([
     db.loan.count({ where: { status: "ACTIVE" } }),
     db.loan.count({ where: { status: "FULLY_PAID" } }),
@@ -203,20 +205,26 @@ export default async function DashboardPage({ searchParams }) {
     db.employee.count({
       where: { bookings: { some: {} } },
     }),
-    db.loan.findMany({
-      include: { payments: true }
-    })
+    // Calculate total proportional profit directly in database via raw SQL query
+    db.$queryRaw`
+      SELECT COALESCE(SUM(
+        CASE 
+          WHEN l."totalAmountPayable" <= 0 THEN 0 
+          ELSE (COALESCE(p.paid_sum, 0) / l."totalAmountPayable") * l."interestAmount" 
+        END
+      ), 0) as total_profit
+      FROM "Loan" l
+      LEFT JOIN (
+        SELECT "loanId", SUM("amountPaid") as paid_sum 
+        FROM "Payment" 
+        GROUP BY "loanId"
+      ) p ON l.id = p."loanId"
+    `
   ]);
 
   const totalOutstandingBalance = outstandingBalanceAgg._sum.remainingBalance || 0;
   const totalCollections = totalCollectionsAgg._sum.amountPaid || 0;
-
-  // Calculate profit earned dynamically based on actual payments received (proportional interest)
-  const totalProfit = allLoansForProfit.reduce((sum, loan) => {
-    if (loan.totalAmountPayable <= 0) return sum;
-    const paidAmount = loan.payments.reduce((pSum, p) => pSum + p.amountPaid, 0);
-    return sum + (paidAmount / loan.totalAmountPayable) * loan.interestAmount;
-  }, 0);
+  const totalProfit = Number(profitResult?.[0]?.total_profit || 0);
 
   // Render AdminDashboardClient for ADMIN, CASHIER, or AGENT roles (consists strictly of clickable stat cards)
   if (session.role === "ADMIN" || session.role === "CASHIER" || session.role === "AGENT") {
