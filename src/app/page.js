@@ -164,41 +164,7 @@ export default async function DashboardPage({ searchParams }) {
   const selectedEmployeeId = resolvedSearchParams.employeeId || "";
   const selectedLoanId = resolvedSearchParams.loanId || "";
 
-  // 3. Compute Stat Card Aggregates (Real-time SQL aggregations)
-  const activeLoansCount = await db.loan.count({
-    where: { status: "ACTIVE" },
-  });
-
-  const fullyPaidCount = await db.loan.count({
-    where: { status: "FULLY_PAID" },
-  });
-
-  const overdueCount = await db.loan.count({
-    where: { status: "OVERDUE" },
-  });
-
-  const outstandingBalanceAgg = await db.loan.aggregate({
-    _sum: { remainingBalance: true },
-    where: { remainingBalance: { gt: 0 } },
-  });
-  const totalOutstandingBalance = outstandingBalanceAgg._sum.remainingBalance || 0;
-
-  const totalCollectionsAgg = await db.payment.aggregate({
-    _sum: { amountPaid: true },
-  });
-  const totalCollections = totalCollectionsAgg._sum.amountPaid || 0;
-
-  // Calculate profit earned dynamically based on actual payments received (proportional interest)
-  const allLoansForProfit = await db.loan.findMany({
-    include: { payments: true }
-  });
-  const totalProfit = allLoansForProfit.reduce((sum, loan) => {
-    if (loan.totalAmountPayable <= 0) return sum;
-    const paidAmount = loan.payments.reduce((pSum, p) => pSum + p.amountPaid, 0);
-    return sum + (paidAmount / loan.totalAmountPayable) * loan.interestAmount;
-  }, 0);
-
-  // Monthly Loans Due
+  // Monthly Loans Due date boundaries
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
@@ -207,24 +173,50 @@ export default async function DashboardPage({ searchParams }) {
   endOfMonth.setDate(0);
   endOfMonth.setHours(23, 59, 59, 999);
 
-  const dueThisMonthCount = await db.loan.count({
-    where: {
-      dueDate: {
-        gte: startOfMonth,
-        lte: endOfMonth,
+  // Run all count and aggregate queries in parallel to avoid N+1 query blocking
+  const [
+    activeLoansCount,
+    fullyPaidCount,
+    overdueCount,
+    outstandingBalanceAgg,
+    totalCollectionsAgg,
+    dueThisMonthCount,
+    employeesWithLoansCount,
+    allLoansForProfit
+  ] = await Promise.all([
+    db.loan.count({ where: { status: "ACTIVE" } }),
+    db.loan.count({ where: { status: "FULLY_PAID" } }),
+    db.loan.count({ where: { status: "OVERDUE" } }),
+    db.loan.aggregate({
+      _sum: { remainingBalance: true },
+      where: { remainingBalance: { gt: 0 } },
+    }),
+    db.payment.aggregate({
+      _sum: { amountPaid: true },
+    }),
+    db.loan.count({
+      where: {
+        dueDate: { gte: startOfMonth, lte: endOfMonth },
+        remainingBalance: { gt: 0 },
       },
-      remainingBalance: { gt: 0 },
-    },
-  });
+    }),
+    db.employee.count({
+      where: { bookings: { some: {} } },
+    }),
+    db.loan.findMany({
+      include: { payments: true }
+    })
+  ]);
 
-  // Employees count with loans
-  const employeesWithLoansCount = await db.employee.count({
-    where: {
-      bookings: {
-        some: {},
-      },
-    },
-  });
+  const totalOutstandingBalance = outstandingBalanceAgg._sum.remainingBalance || 0;
+  const totalCollections = totalCollectionsAgg._sum.amountPaid || 0;
+
+  // Calculate profit earned dynamically based on actual payments received (proportional interest)
+  const totalProfit = allLoansForProfit.reduce((sum, loan) => {
+    if (loan.totalAmountPayable <= 0) return sum;
+    const paidAmount = loan.payments.reduce((pSum, p) => pSum + p.amountPaid, 0);
+    return sum + (paidAmount / loan.totalAmountPayable) * loan.interestAmount;
+  }, 0);
 
   // Render AdminDashboardClient for ADMIN, CASHIER, or AGENT roles (consists strictly of clickable stat cards)
   if (session.role === "ADMIN" || session.role === "CASHIER" || session.role === "AGENT") {
