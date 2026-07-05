@@ -142,20 +142,18 @@ export default async function DashboardPage({ searchParams }) {
   const session2 = await getSession();
   if (!session2) redirect("/login");
 
-  // 1. Business Rule Engine: Automatically update ACTIVE loans past their due date to OVERDUE
-  try {
-    await db.loan.updateMany({
-      where: {
-        status: "ACTIVE",
-        dueDate: { lt: new Date() },
-      },
-      data: {
-        status: "OVERDUE",
-      },
-    });
-  } catch (e) {
+  // 1. Business Rule Engine: Automatically update ACTIVE loans past their due date to OVERDUE (Run in background to avoid blocking page load)
+  db.loan.updateMany({
+    where: {
+      status: "ACTIVE",
+      dueDate: { lt: new Date() },
+    },
+    data: {
+      status: "OVERDUE",
+    },
+  }).catch((e) => {
     console.error("Failed to auto-update overdue loans:", e);
-  }
+  });
 
   // 2. Fetch Query Params for Drill-Down
   const resolvedSearchParams = await searchParams;

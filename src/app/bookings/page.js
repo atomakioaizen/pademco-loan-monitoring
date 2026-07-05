@@ -17,8 +17,41 @@ export default async function BookingsPage() {
   if (!session) redirect("/login");
   if (session.role !== "AGENT" && session.role !== "ADMIN") redirect("/");
 
-  // Fetch dynamic settings from database
-  const settingsList = await db.systemSetting.findMany();
+  // Fetch dynamic settings and entity listings in parallel
+  const [
+    settingsList,
+    employees,
+    activeBookings,
+    airlines,
+    bookings
+  ] = await Promise.all([
+    db.systemSetting.findMany(),
+    db.employee.findMany({
+      where: { status: "ACTIVE" },
+      orderBy: { fullName: "asc" },
+    }),
+    db.booking.findMany({
+      where: {
+        isArchived: false,
+        loan: { status: { not: "FULLY_PAID" } }
+      },
+      select: { employeeId: true, flightCount: true }
+    }),
+    db.airline.findMany({
+      orderBy: { name: "asc" },
+    }),
+    db.booking.findMany({
+      where: { isArchived: false },
+      include: {
+        employee: { include: { office: true } },
+        airline: true,
+        loan: true, // Only fetch the loan status/details, don't nested fetch all payments history for every single listing
+        histories: { orderBy: { createdAt: "desc" } }
+      },
+      orderBy: { createdAt: "desc" },
+    })
+  ]);
+
   const settings = settingsList.reduce((acc, curr) => {
     acc[curr.key] = curr.value;
     return acc;
@@ -28,49 +61,10 @@ export default async function BookingsPage() {
   const dynamicRebookingFee = parseFloat(settings.rebooking_fee || "200.00");
   const dynamicMaxFlights = parseInt(settings.max_active_flights || "4");
 
-  // Load active employees and airlines for forms
-  const employees = await db.employee.findMany({
-    where: { status: "ACTIVE" },
-    orderBy: { fullName: "asc" },
-  });
-
-  // Calculate outstanding flight counts dynamically for each employee
-  const activeBookings = await db.booking.findMany({
-    where: {
-      isArchived: false,
-      loan: {
-        status: { not: "FULLY_PAID" }
-      }
-    },
-    select: { employeeId: true, flightCount: true }
-  });
-
   const flightCountMap = activeBookings.reduce((acc, curr) => {
     acc[curr.employeeId] = (acc[curr.employeeId] || 0) + curr.flightCount;
     return acc;
   }, {});
-
-  const airlines = await db.airline.findMany({
-    orderBy: { name: "asc" },
-  });
-
-  // Load all Bookings including employee, airline, linked Loan, and rebooking histories
-  const bookings = await db.booking.findMany({
-    where: { isArchived: false },
-    include: {
-      employee: {
-        include: { office: true },
-      },
-      airline: true,
-      loan: {
-        include: { payments: true }
-      },
-      histories: {
-        orderBy: { createdAt: "desc" }
-      }
-    },
-    orderBy: { createdAt: "desc" },
-  });
 
   // Server Action to Create Booking & Automated Loan
   async function createBookingAndLoan(formData) {
