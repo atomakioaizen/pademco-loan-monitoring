@@ -78,10 +78,10 @@ export const config = {
     /*
      * Match all request paths except for the ones starting with:
      * - api/auth (auth APIs)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
+     * - _next (Next.js static assets & prefetch chunks)
+     * - static (public static assets)
+     * - favicon.ico, logo files, etc.
      */
-    "/((?!api/auth|_next/static|_next/image|favicon.ico).*)",
+    "/((?!api/auth|_next/|static/|[\\w-]+\\.\\w+).*)",
   ],
 };
