@@ -2,7 +2,14 @@
 
 import React, { useState, useRef } from "react";
 
-export default function BookingFormClient({ employees, airlines, settings, createBookingAction, onSuccess }) {
+export default function BookingFormClient({
+  employees,
+  airlines,
+  settings,
+  createBookingAction,
+  requestOldLoanApprovalAction,
+  onSuccess,
+}) {
   const [tripType, setTripType] = useState("ONE_WAY");
   const [ticketCost, setTicketCost] = useState("");
   const [termMonths, setTermMonths] = useState(1);
@@ -11,7 +18,53 @@ export default function BookingFormClient({ employees, airlines, settings, creat
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedEmpId, setSelectedEmpId] = useState("");
   const [isRelativeBooking, setIsRelativeBooking] = useState(false);
+  const [activeModal, setActiveModal] = useState(null); // null | "INFO_PROMPT" | "PENDING" | "APPROVED" | "REJECTED"
+  const [isRequestingApproval, setIsRequestingApproval] = useState(false);
   const formRef = useRef(null);
+
+  const selectedEmp = employees.find((emp) => emp.id === selectedEmpId);
+  const isLocked = selectedEmp && selectedEmp.hasOldLoan && selectedEmp.oldLoanRequestStatus !== "APPROVED";
+
+  React.useEffect(() => {
+    if (!selectedEmpId) {
+      setActiveModal(null);
+      return;
+    }
+    const emp = employees.find((e) => e.id === selectedEmpId);
+    if (!emp) return;
+
+    if (emp.hasOldLoan) {
+      if (emp.oldLoanRequestStatus === "NONE") {
+        setActiveModal("INFO_PROMPT");
+      } else if (emp.oldLoanRequestStatus === "PENDING") {
+        setActiveModal("PENDING");
+      } else if (emp.oldLoanRequestStatus === "APPROVED") {
+        setActiveModal("APPROVED");
+      } else if (emp.oldLoanRequestStatus === "REJECTED") {
+        setActiveModal("REJECTED");
+      }
+    } else {
+      setActiveModal(null);
+    }
+  }, [selectedEmpId, employees]);
+
+  async function handleRequestApproval() {
+    if (!selectedEmpId) return;
+    setIsRequestingApproval(true);
+    const formData = new FormData();
+    formData.append("employeeId", selectedEmpId);
+    try {
+      const res = await requestOldLoanApprovalAction(formData);
+      if (res && res.error) {
+        alert(res.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("An unexpected error occurred while submitting approval request.");
+    } finally {
+      setIsRequestingApproval(false);
+    }
+  }
 
   const serviceFee = settings?.service_fee ?? 500.00;
   const baseInterestRate = settings?.interest_rate ?? 1.00;
@@ -92,61 +145,69 @@ export default function BookingFormClient({ employees, airlines, settings, creat
       <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
         
 
-        {/* SECTION 1: Applicant & Airline Booking Info */}
+        {/* SECTION 1: Applicant Selection */}
         <div className="bg-slate-50/50 border border-slate-200 p-5 rounded-2xl space-y-4">
           <span className="block text-[10px] font-black text-primary uppercase tracking-widest">
-            1. Applicant & Airline Booking Info
+            1. Applicant Selection
           </span>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {/* Employee Dropdown */}
-            <div>
-              <label htmlFor="employeeId" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Employee Applicant
-              </label>
-              <select
-                name="employeeId"
-                id="employeeId"
-                required
-                value={selectedEmpId}
-                onChange={(e) => setSelectedEmpId(e.target.value)}
-                className="mt-1.5 block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-sm transition-all bg-white font-medium"
-              >
-                <option value="">Select Employee</option>
-                {employees.map((emp) => {
-                  const outstandingFlights = emp.outstandingFlights || 0;
-                  const isLimitReached = outstandingFlights >= maxActiveFlights;
-                  const isInactive = emp.status === "INACTIVE";
-                  const isDisabled = isLimitReached || isInactive;
-                  
-                  let label = `${emp.fullName}`;
-                  if (isInactive) {
-                    label += " (Inactive)";
-                  } else if (isLimitReached) {
-                    label += ` ${outstandingFlights}/${maxActiveFlights} (Max Loans)`;
-                  } else {
-                    label += ` ${outstandingFlights}/${maxActiveFlights}`;
-                  }
+          <div>
+            <label htmlFor="employeeId" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+              Employee Applicant
+            </label>
+            <select
+              name="employeeId"
+              id="employeeId"
+              required
+              value={selectedEmpId}
+              onChange={(e) => setSelectedEmpId(e.target.value)}
+              className="mt-1.5 block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-sm transition-all bg-white font-medium"
+            >
+              <option value="">Select Employee</option>
+              {employees.map((emp) => {
+                const outstandingFlights = emp.outstandingFlights || 0;
+                const isLimitReached = outstandingFlights >= maxActiveFlights;
+                const isInactive = emp.status === "INACTIVE";
+                const isDisabled = isLimitReached || isInactive;
+                
+                let label = `${emp.fullName}`;
+                if (isInactive) {
+                  label += " (Inactive)";
+                } else if (isLimitReached) {
+                  label += ` ${outstandingFlights}/${maxActiveFlights} (Max Loans)`;
+                } else {
+                  label += ` ${outstandingFlights}/${maxActiveFlights}`;
+                }
 
-                  return (
-                    <option
-                      key={emp.id}
-                      value={emp.id}
-                      disabled={isDisabled}
-                      className={isDisabled ? "text-rose-500 bg-rose-50 font-bold" : ""}
-                    >
-                      {label}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
+                return (
+                  <option
+                    key={emp.id}
+                    value={emp.id}
+                    disabled={isDisabled}
+                    className={isDisabled ? "text-rose-500 bg-rose-50 font-bold" : ""}
+                  >
+                    {label}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        </div>
 
-            {/* Partner Airline */}
-            <div>
-              <label htmlFor="airlineId" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Partner Airline
-              </label>
-              <select
+        {/* Form fields below are locked if user is restricted by old loans */}
+        <fieldset disabled={isLocked} className="space-y-6">
+
+          {/* SECTION 2: Airline Booking Info */}
+          <div className="bg-slate-50/50 border border-slate-200 p-5 rounded-2xl space-y-4">
+            <span className="block text-[10px] font-black text-primary uppercase tracking-widest">
+              2. Airline Booking Info
+            </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Partner Airline */}
+              <div>
+                <label htmlFor="airlineId" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Partner Airline
+                </label>
+                <select
                 name="airlineId"
                 id="airlineId"
                 required
@@ -682,9 +743,170 @@ export default function BookingFormClient({ employees, airlines, settings, creat
             </button>
           </div>
         </div>
-
+      </fieldset>
       </form>
+
+      {/* 1. INFO_PROMPT Modal */}
+      {activeModal === "INFO_PROMPT" && selectedEmp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full p-6 space-y-4 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-amber-600 border border-amber-200">
+              <svg className="h-7 w-7 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-slate-800">Borrower Old Loan Alert</h3>
+              <p className="text-xs text-slate-505 mt-1">
+                The selected employee has undocumented pre-existing loan records.
+              </p>
+            </div>
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-left space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="font-semibold text-slate-505">Total Old Loans:</span>
+                <span className="font-black text-slate-800">{selectedEmp.oldLoanDetails?.totalOldLoans}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="font-semibold text-slate-505">Loan Exists Since:</span>
+                <span className="font-bold text-slate-700">
+                  {selectedEmp.oldLoanDetails?.dateSince && new Date(selectedEmp.oldLoanDetails.dateSince).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                </span>
+              </div>
+            </div>
+            <div className="text-xs text-slate-600 font-medium">
+              This borrower has existing old loan records. <br/>Do you want to request approval for a new loan?
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedEmpId("");
+                  setActiveModal(null);
+                }}
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-800 py-3 rounded-xl text-xs font-black transition-all cursor-pointer"
+              >
+                NO
+              </button>
+              <button
+                type="button"
+                disabled={isRequestingApproval}
+                onClick={handleRequestApproval}
+                className="flex-1 bg-primary hover:bg-primary-hover text-white py-3 rounded-xl text-xs font-black transition-all cursor-pointer shadow-md disabled:opacity-50"
+              >
+                {isRequestingApproval ? "Sending Request..." : "YES"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. PENDING Modal */}
+      {activeModal === "PENDING" && selectedEmp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full p-6 space-y-4 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-amber-505 border border-amber-250">
+              <svg className="h-7 w-7 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.2" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-slate-800">Approval Request Pending</h3>
+              <p className="text-xs text-slate-505 mt-1">
+                Your override approval request is currently under bookkeeper review.
+              </p>
+            </div>
+            <div className="p-3 bg-amber-50 border border-amber-100 text-amber-800 rounded-xl text-xs font-semibold">
+              “Request is still pending approval.”
+            </div>
+            <div className="text-[10px] text-slate-400">
+              Booking will remain LOCKED until approved by the bookkeeper.
+            </div>
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 py-3 rounded-xl text-xs font-black transition-all cursor-pointer"
+              >
+                OK (Close)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. APPROVED Modal */}
+      {activeModal === "APPROVED" && selectedEmp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full p-6 space-y-4 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
+              <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-slate-800">Request Approved!</h3>
+              <p className="text-xs text-slate-505 mt-1">
+                The bookkeeper has granted booking clearance for this transaction.
+              </p>
+            </div>
+            <div className="p-3 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-xl text-xs font-bold">
+              “Request approved. You may now proceed with booking.”
+            </div>
+            <div className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">
+              Booking became UNLOCKED
+            </div>
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-xl text-xs font-black transition-all cursor-pointer shadow-md"
+              >
+                OK (Proceed to Input details)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. REJECTED Modal */}
+      {activeModal === "REJECTED" && selectedEmp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full p-6 space-y-4 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-rose-50 text-rose-600 border border-rose-200">
+              <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-slate-800">Clearance Request Rejected</h3>
+              <p className="text-xs text-slate-505 mt-1">
+                The bookkeeper denied override clearance for this borrower.
+              </p>
+            </div>
+            <div className="p-3 bg-rose-50 border border-rose-100 text-rose-800 rounded-xl text-xs font-bold leading-relaxed">
+              “Request rejected. This borrower cannot proceed with a new loan.”
+            </div>
+            {selectedEmp.oldLoanRequestRemarks && (
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-left text-xs">
+                <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider">Bookkeeper Remarks:</span>
+                <span className="font-medium text-slate-700">{selectedEmp.oldLoanRequestRemarks}</span>
+              </div>
+            )}
+            <div className="text-[10px] text-slate-405 font-medium">
+              Booking remains LOCKED. You must inform the borrower of their status.
+            </div>
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 py-3 rounded-xl text-xs font-black transition-all cursor-pointer"
+              >
+                OK (Close)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

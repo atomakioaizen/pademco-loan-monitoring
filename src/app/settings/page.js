@@ -197,6 +197,11 @@ export default async function SettingsPage({ searchParams }) {
         if (cashierCount >= 3) {
           return { error: "System limit reached: Maximum of 3 Cashier accounts is allowed." };
         }
+      } else if (role === "BOOKKEEPER") {
+        const bookkeeperCount = await db.user.count({ where: { role: "BOOKKEEPER" } });
+        if (bookkeeperCount >= 3) {
+          return { error: "System limit reached: Maximum of 3 Bookkeeper accounts is allowed." };
+        }
       }
 
       // Check duplicate username (case-insensitive)

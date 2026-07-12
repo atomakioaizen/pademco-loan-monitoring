@@ -23,7 +23,9 @@ export default async function BookingsPage() {
     employees,
     activeBookings,
     airlines,
-    bookings
+    bookings,
+    oldLoans,
+    oldLoanRequests
   ] = await Promise.all([
     db.systemSetting.findMany(),
     db.employee.findMany({
@@ -49,6 +51,10 @@ export default async function BookingsPage() {
         histories: { orderBy: { createdAt: "desc" } }
       },
       orderBy: { createdAt: "desc" },
+    }),
+    db.oldLoan.findMany(),
+    db.oldLoanRequest.findMany({
+      where: { requestedById: session.id }
     })
   ]);
 
@@ -63,6 +69,16 @@ export default async function BookingsPage() {
 
   const flightCountMap = activeBookings.reduce((acc, curr) => {
     acc[curr.employeeId] = (acc[curr.employeeId] || 0) + curr.flightCount;
+    return acc;
+  }, {});
+
+  const oldLoanMap = oldLoans.reduce((acc, curr) => {
+    acc[curr.employeeId] = curr;
+    return acc;
+  }, {});
+
+  const requestMap = oldLoanRequests.reduce((acc, curr) => {
+    acc[curr.employeeId] = curr;
     return acc;
   }, {});
 
@@ -120,6 +136,21 @@ export default async function BookingsPage() {
     }
 
     try {
+      // 0. Enforce Old Loan gate: check if borrower has pre-existing old loans
+      const oldLoan = await db.oldLoan.findUnique({
+        where: { employeeId },
+      });
+
+      if (oldLoan) {
+        const approvalRequest = await db.oldLoanRequest.findUnique({
+          where: { employeeId },
+        });
+
+        if (!approvalRequest || approvalRequest.status !== "APPROVED") {
+          return { error: "Booking locked. Borrower has pre-existing old loans. Agent must request approval first." };
+        }
+      }
+
       // 1. Enforce Employee Limit Constraint: Max active outstanding flights limit
       const activeBookings = await db.booking.findMany({
         where: {
@@ -163,6 +194,12 @@ export default async function BookingsPage() {
 
       // Perform atomic database transaction
       await db.$transaction(async (tx) => {
+        if (oldLoan) {
+          await tx.oldLoanRequest.delete({
+            where: { employeeId },
+          });
+        }
+
         const booking = await tx.booking.create({
           data: {
             referenceNumber,
@@ -497,6 +534,49 @@ export default async function BookingsPage() {
     revalidatePath("/bookings");
   }
 
+  // Server Action to Request Old Loan booking override approval
+  async function requestOldLoanApprovalAction(formData) {
+    "use server";
+    const session = await getSession();
+    if (!session || (session.role !== "AGENT" && session.role !== "ADMIN")) {
+      throw new Error("Unauthorized");
+    }
+
+    const employeeId = formData.get("employeeId");
+    if (!employeeId) return { error: "Employee ID is required." };
+
+    try {
+      await db.oldLoanRequest.upsert({
+        where: { employeeId },
+        update: {
+          status: "PENDING",
+          requestedById: session.id,
+          remarks: null,
+          reviewedById: null,
+          reviewedAt: null,
+        },
+        create: {
+          employeeId,
+          requestedById: session.id,
+          status: "PENDING",
+        },
+      });
+
+      await logAction(
+        session.id,
+        "CREATE",
+        "BOOKING",
+        `Requested override approval for borrower old loans lock (Employee ID: ${employeeId}).`
+      );
+
+      revalidatePath("/bookings");
+      return { success: true };
+    } catch (e) {
+      console.error(e);
+      return { error: "Failed to submit approval request." };
+    }
+  }
+
   return (
     <AppLayout user={session}>
       <div className="space-y-6">
@@ -515,12 +595,24 @@ export default async function BookingsPage() {
           maxActiveFlights={dynamicMaxFlights}
           cancelBookingAction={cancelBooking}
           updateBookingAction={updateBookingAndLoan}
-          employees={employees.map((emp) => ({
-            ...emp,
-            outstandingFlights: flightCountMap[emp.id] || 0,
-          }))}
+          employees={employees.map((emp) => {
+            const oldLoan = oldLoanMap[emp.id];
+            const req = requestMap[emp.id];
+            return {
+              ...emp,
+              outstandingFlights: flightCountMap[emp.id] || 0,
+              hasOldLoan: !!oldLoan,
+              oldLoanDetails: oldLoan ? {
+                totalOldLoans: oldLoan.totalOldLoans,
+                dateSince: oldLoan.dateSince,
+              } : null,
+              oldLoanRequestStatus: req ? req.status : "NONE",
+              oldLoanRequestRemarks: req ? req.remarks : null,
+            };
+          })}
           settings={{ service_fee: dynamicServiceFee, interest_rate: dynamicInterestRate, max_active_flights: dynamicMaxFlights, rebooking_fee: dynamicRebookingFee }}
           createBookingAction={createBookingAndLoan}
+          requestOldLoanApprovalAction={requestOldLoanApprovalAction}
         />
       </div>
     </AppLayout>

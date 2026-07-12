@@ -14,6 +14,7 @@ export default function BookingsTabsClient({
   employees,
   settings,
   createBookingAction,
+  requestOldLoanApprovalAction,
 }) {
   // Default to "FORM" (Book Airline Ticket) tab as requested by the user
   const [activeTab, setActiveTab] = useState("FORM"); // "FORM" | "LEDGER"
@@ -73,6 +74,7 @@ export default function BookingsTabsClient({
                 airlines={airlines}
                 settings={settings}
                 createBookingAction={createBookingAction}
+                requestOldLoanApprovalAction={requestOldLoanApprovalAction}
                 onSuccess={() => setActiveTab("LEDGER")} // Automatically redirect to ledger after successful booking
               />
             </div>

@@ -14,7 +14,7 @@ model User {
   username           String                   @unique
   name               String
   passwordHash       String
-  role               String                   // "ADMIN", "CASHIER", "VIEWER", "AGENT"
+  role               String                   // "ADMIN", "CASHIER", "VIEWER", "AGENT", "BOOKKEEPER"
   status             String                   @default("APPROVED") // "PENDING", "APPROVED", "DECLINED"
   employeeId         String?                  @unique
   employee           Employee?                @relation(fields: [employeeId], references: [id], onDelete: Cascade)
@@ -25,6 +25,9 @@ model User {
   agentBookings      Booking[]                @relation("AgentBookings")
   commissionRate     Float                    @default(75)
   commissionPayments AgentCommissionPayment[]
+  encodedOldLoans    OldLoan[]
+  oldLoanRequests    OldLoanRequest[]         @relation("RequestedBy")
+  reviewedRequests   OldLoanRequest[]         @relation("ReviewedBy")
 }
 
 model Office {
@@ -61,6 +64,8 @@ model Employee {
   updatedAt     DateTime  @updatedAt
   bookings      Booking[]
   user          User?
+  oldLoan       OldLoan?
+  oldLoanRequest OldLoanRequest?
 
   @@index([officeId])
 }
@@ -183,4 +188,32 @@ model AgentCommissionPayment {
 
   @@unique([agentId, monthYear])
   @@index([agentId])
+}
+
+model OldLoan {
+  id            String   @id @default(uuid())
+  employeeId    String   @unique
+  employee      Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  totalOldLoans Int
+  dateSince     DateTime
+  remarks       String?
+  encodedById   String
+  encodedBy     User     @relation(fields: [encodedById], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model OldLoanRequest {
+  id            String    @id @default(uuid())
+  employeeId    String    @unique
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  requestedById String
+  requestedBy   User      @relation("RequestedBy", fields: [requestedById], references: [id])
+  status        String    @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
+  reviewedById  String?
+  reviewedBy    User?     @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  reviewedAt    DateTime?
+  remarks       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }

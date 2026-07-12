@@ -100,6 +100,7 @@ export default function CreateUserForm({ employees, action }) {
           >
             <option value="AGENT">AGENT (Booking Agent / Ticketing)</option>
             <option value="CASHIER">CASHIER (Payments & Receipts)</option>
+            <option value="BOOKKEEPER">BOOKKEEPER (Old Loans Encoder & Approver)</option>
           </select>
         </div>
 
