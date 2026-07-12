@@ -29,7 +29,13 @@ export default async function BookingsPage() {
   ] = await Promise.all([
     db.systemSetting.findMany(),
     db.employee.findMany({
-      where: { status: "ACTIVE" },
+      where: {
+        status: "ACTIVE",
+        user: {
+          role: "VIEWER",
+          status: "APPROVED"
+        }
+      },
       orderBy: { fullName: "asc" },
     }),
     db.booking.findMany({

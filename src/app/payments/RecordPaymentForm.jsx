@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import EmployeeCombobox from "@/components/EmployeeCombobox";
 
 export default function RecordPaymentForm({
   activeLoans,
@@ -179,34 +180,18 @@ export default function RecordPaymentForm({
           <label htmlFor="employeeId" className="block text-sm font-semibold text-slate-700">
             1. Select Employee / Borrower
           </label>
-          <select
-            id="employeeId"
-            required
-            value={selectedEmployeeId}
-            onChange={(e) => {
-              setSelectedEmployeeId(e.target.value);
-              setSelectedLoanId("");
-            }}
-            className="mt-1 block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-sm transition-all bg-white font-medium"
-          >
-            <option value="">Select Employee</option>
-            {uniqueEmployees.map((emp) => {
-              const outstandingFlights = emp.outstandingFlights || 0;
-              const isInactive = emp.status === "INACTIVE";
-              
-              let label = `${emp.fullName}`;
-              if (isInactive) {
-                label += " (Inactive)";
-              } else {
-                label += ` ${outstandingFlights}/${maxActiveFlights}`;
-              }
-              return (
-                <option key={emp.id} value={emp.id}>
-                  {label}
-                </option>
-              );
-            })}
-          </select>
+          <div className="mt-1">
+            <EmployeeCombobox
+              employees={uniqueEmployees}
+              value={selectedEmployeeId}
+              onChange={(val) => {
+                setSelectedEmployeeId(val);
+                setSelectedLoanId("");
+              }}
+              maxActiveFlights={maxActiveFlights}
+              placeholder="Search or select borrower name/ID..."
+            />
+          </div>
         </div>
 
         {/* Step 2: Select Loan Account (only shown if employee is chosen) */}

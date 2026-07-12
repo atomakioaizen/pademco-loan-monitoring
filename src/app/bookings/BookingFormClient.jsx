@@ -150,46 +150,18 @@ export default function BookingFormClient({
           <span className="block text-[10px] font-black text-primary uppercase tracking-widest">
             1. Applicant Selection
           </span>
-          <div>
-            <label htmlFor="employeeId" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-              Employee Applicant
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+              Employee Applicant / Borrower
             </label>
-            <select
-              name="employeeId"
-              id="employeeId"
-              required
+            <EmployeeCombobox
+              employees={employees}
               value={selectedEmpId}
-              onChange={(e) => setSelectedEmpId(e.target.value)}
-              className="mt-1.5 block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-sm transition-all bg-white font-medium"
-            >
-              <option value="">Select Employee</option>
-              {employees.map((emp) => {
-                const outstandingFlights = emp.outstandingFlights || 0;
-                const isLimitReached = outstandingFlights >= maxActiveFlights;
-                const isInactive = emp.status === "INACTIVE";
-                const isDisabled = isLimitReached || isInactive;
-                
-                let label = `${emp.fullName}`;
-                if (isInactive) {
-                  label += " (Inactive)";
-                } else if (isLimitReached) {
-                  label += ` ${outstandingFlights}/${maxActiveFlights} (Max Loans)`;
-                } else {
-                  label += ` ${outstandingFlights}/${maxActiveFlights}`;
-                }
-
-                return (
-                  <option
-                    key={emp.id}
-                    value={emp.id}
-                    disabled={isDisabled}
-                    className={isDisabled ? "text-rose-500 bg-rose-50 font-bold" : ""}
-                  >
-                    {label}
-                  </option>
-                );
-              })}
-            </select>
+              onChange={setSelectedEmpId}
+              maxActiveFlights={maxActiveFlights}
+              placeholder="Search or select borrower name/ID..."
+            />
+            <input type="hidden" name="employeeId" value={selectedEmpId} />
           </div>
         </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import EmployeeCombobox from "@/components/EmployeeCombobox";
 
 export default function BookkeeperConsoleClient({
   employees,
@@ -13,9 +14,7 @@ export default function BookkeeperConsoleClient({
   const [activeTab, setActiveTab] = useState("ENCODE"); // "ENCODE" | "REQUESTS"
   
   // Encoding Form State
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [totalOldLoans, setTotalOldLoans] = useState("");
   const [dateSince, setDateSince] = useState("");
   const [remarks, setRemarks] = useState("");
@@ -28,11 +27,7 @@ export default function BookkeeperConsoleClient({
   const [reviewRemarks, setReviewRemarks] = useState("");
   const [isReviewing, setIsReviewing] = useState(false);
 
-  // Search filter
-  const filteredEmployees = employees.filter((emp) =>
-    emp.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.employeeId.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const selectedEmployee = employees.find(emp => emp.id === selectedEmployeeId) || null;
 
   async function handleEncodeSubmit(e) {
     e.preventDefault();
@@ -59,8 +54,7 @@ export default function BookkeeperConsoleClient({
         setTotalOldLoans("");
         setDateSince("");
         setRemarks("");
-        setSelectedEmployee(null);
-        setSearchTerm("");
+        setSelectedEmployeeId("");
       }
     } catch (err) {
       console.error(err);
@@ -167,58 +161,12 @@ export default function BookkeeperConsoleClient({
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                   Select Borrower
                 </label>
-                {selectedEmployee ? (
-                  <div className="flex items-center justify-between border border-slate-350 bg-blue-50/20 px-4 py-3 rounded-xl">
-                    <div>
-                      <div className="text-sm font-bold text-slate-800">{selectedEmployee.fullName}</div>
-                      <div className="text-[10px] font-medium text-slate-400">ID: {selectedEmployee.employeeId} • {selectedEmployee.office.name}</div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedEmployee(null)}
-                      className="text-slate-400 hover:text-rose-600 transition-colors"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <input
-                      type="text"
-                      placeholder="Type employee name or ID..."
-                      value={searchTerm}
-                      onChange={(e) => {
-                        setSearchTerm(e.target.value);
-                        setShowDropdown(true);
-                      }}
-                      onFocus={() => setShowDropdown(true)}
-                      className="block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-sm transition-all"
-                    />
-                    {showDropdown && searchTerm && (
-                      <div className="absolute left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg z-30 max-h-60 overflow-y-auto divide-y divide-slate-100">
-                        {filteredEmployees.length > 0 ? (
-                          filteredEmployees.map((emp) => (
-                            <button
-                              key={emp.id}
-                              type="button"
-                              onClick={() => {
-                                setSelectedEmployee(emp);
-                                setShowDropdown(false);
-                                setSearchTerm("");
-                              }}
-                              className="w-full text-left px-4 py-3 hover:bg-slate-50 transition-all flex flex-col"
-                            >
-                              <span className="text-sm font-bold text-slate-800">{emp.fullName}</span>
-                              <span className="text-[10px] text-slate-400">ID: {emp.employeeId} • {emp.office.name}</span>
-                            </button>
-                          ))
-                        ) : (
-                          <div className="px-4 py-3.5 text-xs text-slate-400 text-center">No active employees found.</div>
-                        )}
-                      </div>
-                    )}
-                  </>
-                )}
+                <EmployeeCombobox
+                  employees={employees}
+                  value={selectedEmployeeId}
+                  onChange={setSelectedEmployeeId}
+                  placeholder="Search or select borrower name/ID..."
+                />
               </div>
 
               {/* Total Old Loans */}
@@ -319,7 +267,7 @@ export default function BookkeeperConsoleClient({
                         <td className="px-4 py-3.5 whitespace-nowrap text-right text-xs">
                           <button
                             onClick={() => {
-                              setSelectedEmployee(rec.employee);
+                              setSelectedEmployeeId(rec.employee.id);
                               setTotalOldLoans(String(rec.totalOldLoans));
                               setDateSince(new Date(rec.dateSince).toISOString().substring(0, 10));
                               setRemarks(rec.remarks || "");

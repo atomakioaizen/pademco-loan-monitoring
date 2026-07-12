@@ -23,7 +23,13 @@ export default async function BookkeeperPage() {
   // Fetch all required data in parallel
   const [employees, oldLoans, requests] = await Promise.all([
     db.employee.findMany({
-      where: { status: "ACTIVE" },
+      where: {
+        status: "ACTIVE",
+        user: {
+          role: "VIEWER",
+          status: "APPROVED"
+        }
+      },
       include: { office: true },
       orderBy: { fullName: "asc" },
     }),

@@ -3,8 +3,8 @@
 import React, { useState, useTransition } from "react";
 import { approveUserAction, declineUserAction } from "./actions/adminApprovals";
 
-export default function AdminDashboardClient({ loans, payments, session, stats, pendingUsers = [] }) {
-  const [activeModal, setActiveModal] = useState(null); // null | 'outstanding' | 'collections' | 'profit' | 'overdue' | 'pending_registrations'
+export default function AdminDashboardClient({ loans, payments, session, stats, pendingUsers = [], oldLoans = [] }) {
+  const [activeModal, setActiveModal] = useState(null); // null | 'outstanding' | 'collections' | 'profit' | 'overdue' | 'pending_registrations' | 'old_loans'
   const [searchQuery, setSearchQuery] = useState("");
   const [isPending, startTransition] = useTransition();
   const [actionError, setActionError] = useState(null);
@@ -120,6 +120,14 @@ export default function AdminDashboardClient({ loans, payments, session, stats, 
   ).filter((b) => {
     const query = searchQuery.toLowerCase();
     return b.employee.fullName.toLowerCase().includes(query) || b.employee.office.name.toLowerCase().includes(query);
+  });
+
+  const filteredOldLoans = oldLoans.filter((ol) => {
+    const empName = ol.employee.fullName.toLowerCase();
+    const empId = ol.employee.employeeId.toLowerCase();
+    const officeName = ol.employee.office?.name?.toLowerCase() || "";
+    const query = searchQuery.toLowerCase();
+    return empName.includes(query) || empId.includes(query) || officeName.includes(query);
   });
 
   const openModal = (type) => {
@@ -325,7 +333,7 @@ export default function AdminDashboardClient({ loans, payments, session, stats, 
           Other Information
           <span className="text-slate-500 font-normal normal-case tracking-normal">(click to view)</span>
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
 
           {/* Active Loans */}
           <div
@@ -394,15 +402,30 @@ export default function AdminDashboardClient({ loans, payments, session, stats, 
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Borrowers</span>
             <span className="text-2xl font-black text-slate-800 font-mono mt-1 block">{stats.employeesWithLoansCount}</span>
           </div>
+
+          {/* Pre-existing Old Loans Card */}
+          <div
+            onClick={() => openModal("old_loans")}
+            className="group bg-white rounded-2xl p-5 border border-rose-100 shadow-sm hover:shadow-md hover:border-rose-450 hover:shadow-rose-50/55 transition-all cursor-pointer relative overflow-hidden"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <span className="text-[9px] font-black text-rose-500 uppercase tracking-wider group-hover:translate-x-0.5 transition-transform">View →</span>
+            </div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pre-existing Old Loans</span>
+            <span className="text-2xl font-black text-rose-600 font-mono mt-1 block">{oldLoans.length}</span>
+          </div>
         </div>
       </div>
 
       {/* Modals for Breakdowns */}
       {activeModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-6xl w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl border border-slate-100">
-            
-            {/* Modal Header */}
+          <div className="bg-white rounded-3xl max-w-6xl w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl border border-slate-100">             {/* Modal Header */}
             <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-black text-slate-800">
@@ -415,6 +438,7 @@ export default function AdminDashboardClient({ loans, payments, session, stats, 
                   {activeModal === "fully_paid" && "Fully Paid Loan List"}
                   {activeModal === "due_this_month" && "Loans Due This Month"}
                   {activeModal === "total_borrowers" && "Cooperative Borrowers Directory"}
+                  {activeModal === "old_loans" && "Borrowers with Pre-existing Old Loans"}
                 </h3>
                 <p className="text-[11px] text-slate-400 font-semibold mt-0.5">
                   {activeModal === "outstanding" && "List of all active loans with remaining balance."}
@@ -426,6 +450,7 @@ export default function AdminDashboardClient({ loans, payments, session, stats, 
                   {activeModal === "fully_paid" && "Archived loan agreements that are 100% paid."}
                   {activeModal === "due_this_month" && "Active loans scheduled to be collected during this current calendar month."}
                   {activeModal === "total_borrowers" && "Full registry of DENR employees who have created system profiles."}
+                  {activeModal === "old_loans" && "List of registered borrowers with outstanding unpaid old loans."}
                 </p>
               </div>
               <button
@@ -457,6 +482,8 @@ export default function AdminDashboardClient({ loans, payments, session, stats, 
                       ? "Search by Name, Username, or Office..."
                       : activeModal === "total_borrowers"
                       ? "Search by Name, Office, or Position..."
+                      : activeModal === "old_loans"
+                      ? "Search by Name, ID, or Office..."
                       : "Search by Employee or Office..."
                   }
                   value={searchQuery}
@@ -688,6 +715,59 @@ export default function AdminDashboardClient({ loans, payments, session, stats, 
                               <td className="px-6 py-4 text-center font-bold">{b.loanCount} Loan(s)</td>
                               <td className="px-6 py-4 text-right font-black font-mono text-slate-900">
                                 ₱{b.totalBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeModal === "old_loans" && (
+                <div className="p-4 space-y-4">
+                  {filteredOldLoans.length === 0 ? (
+                    <p className="text-center text-slate-400 font-bold py-12">
+                      No borrowers with old loans found.
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto border border-slate-200 rounded-2xl">
+                      <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+                        <thead className="bg-slate-50 text-slate-500 font-bold">
+                          <tr>
+                            <th scope="col" className="px-6 py-3">Borrower / Employee</th>
+                            <th scope="col" className="px-6 py-3">Office Station</th>
+                            <th scope="col" className="px-6 py-3 text-center">Unrecorded Old Loans Count</th>
+                            <th scope="col" className="px-6 py-3">Old Loans Exist Since</th>
+                            <th scope="col" className="px-6 py-3">Encoded By</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 text-slate-700 bg-white font-medium">
+                          {filteredOldLoans.map((ol) => (
+                            <tr key={ol.id} className="hover:bg-slate-50 transition-colors">
+                              <td className="px-6 py-4">
+                                <span className="font-extrabold text-slate-800 text-sm block">{ol.employee.fullName}</span>
+                                <span className="text-[10px] text-slate-400 font-mono">ID: {ol.employee.employeeId}</span>
+                              </td>
+                              <td className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                                {ol.employee.office?.name || "DENR"}
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                <span className="px-2.5 py-1 rounded-full bg-rose-50 border border-rose-100 text-rose-700 font-black text-xs animate-pulse">
+                                  {ol.totalOldLoans} Unpaid Loan(s)
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-slate-600 font-medium">
+                                {new Date(ol.dateSince).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric"
+                                })}
+                              </td>
+                              <td className="px-6 py-4 text-xs text-slate-500">
+                                <span className="font-bold text-slate-700">{ol.encodedBy?.name || "Bookkeeper"}</span>
+                                <span className="block text-[9px] text-slate-400">On {new Date(ol.createdAt).toLocaleDateString()}</span>
                               </td>
                             </tr>
                           ))}
