@@ -59,9 +59,7 @@ export default async function BookingsPage() {
       orderBy: { createdAt: "desc" },
     }),
     db.oldLoan.findMany(),
-    db.oldLoanRequest.findMany({
-      where: { requestedById: session.id }
-    })
+    db.oldLoanRequest.findMany()
   ]);
 
   const settings = settingsList.reduce((acc, curr) => {
