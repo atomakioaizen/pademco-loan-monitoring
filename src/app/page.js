@@ -68,24 +68,29 @@ export default async function DashboardPage({ searchParams }) {
       );
     }
 
-    // Load active employee bookings & loans
-    const bookings = await db.booking.findMany({
-      where: { employeeId, isArchived: false },
-      include: { airline: true, loan: true, bookedBy: true },
-      orderBy: { createdAt: "desc" },
-    });
-
-    const loans = await db.loan.findMany({
-      where: { booking: { employeeId, isArchived: false } },
-      include: {
-        booking: { include: { airline: true } },
-        payments: { include: { cashier: true }, orderBy: { paymentDate: "desc" } },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    // Load active employee bookings, loans, and old loan record in parallel
+    const [bookings, loans, oldLoan, settingsList] = await Promise.all([
+      db.booking.findMany({
+        where: { employeeId, isArchived: false },
+        include: { airline: true, loan: true, bookedBy: true },
+        orderBy: { createdAt: "desc" },
+      }),
+      db.loan.findMany({
+        where: { booking: { employeeId, isArchived: false } },
+        include: {
+          booking: { include: { airline: true } },
+          payments: { include: { cashier: true }, orderBy: { paymentDate: "desc" } },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      db.oldLoan.findUnique({
+        where: { employeeId },
+        include: { encodedBy: { select: { name: true, username: true } } },
+      }),
+      db.systemSetting.findMany(),
+    ]);
 
     // Load System Settings for max capacity calculations
-    const settingsList = await db.systemSetting.findMany();
     const settings = settingsList.reduce((acc, curr) => {
       acc[curr.key] = curr.value;
       return acc;
@@ -134,6 +139,12 @@ export default async function DashboardPage({ searchParams }) {
           totalOutstanding={totalOutstanding}
           totalPaid={totalPaid}
           hasOverdue={hasOverdue}
+          oldLoan={oldLoan ? {
+            totalOldLoans: oldLoan.totalOldLoans,
+            dateSince: oldLoan.dateSince,
+            remarks: oldLoan.remarks,
+            encodedBy: oldLoan.encodedBy?.name || oldLoan.encodedBy?.username || "Bookkeeper",
+          } : null}
         />
       </AppLayout>
     );

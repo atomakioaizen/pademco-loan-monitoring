@@ -16,6 +16,7 @@ export default function ViewerDashboardClient({
   totalOutstanding,
   totalPaid,
   hasOverdue,
+  oldLoan,
 }) {
   const [expandedLoans, setExpandedLoans] = useState({});
   const [receiptFilter, setReceiptFilter] = useState("ALL"); // 'ALL' | 'ACTIVE_PARTIAL' | 'FINISHED'
@@ -186,6 +187,69 @@ export default function ViewerDashboardClient({
           )}
         </div>
       </div>
+
+
+      {/* ── PRE-EXISTING OLD LOAN NOTICE ────────────────────────────── */}
+      {oldLoan && (
+        <div className="relative overflow-hidden rounded-2xl border-2 border-amber-400 bg-gradient-to-r from-amber-50 to-orange-50 p-6 shadow-md shadow-amber-100 animate-fadeIn">
+          {/* pulsing left accent bar */}
+          <div className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl bg-amber-400" />
+          <div className="pl-3 flex flex-col md:flex-row md:items-start gap-5">
+
+            {/* Icon */}
+            <div className="shrink-0 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 border border-amber-300 text-3xl shadow-sm">
+              ⚠️
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 space-y-3">
+              <div>
+                <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Pre-existing Unpaid Loan Alert</p>
+                <h3 className="text-lg font-black text-amber-900 mt-0.5">
+                  You Have {oldLoan.totalOldLoans} Pre-existing Old Loan{oldLoan.totalOldLoans > 1 ? "s" : ""} on Record
+                </h3>
+                <p className="text-sm text-amber-700 font-medium mt-1 leading-relaxed">
+                  These are loans recorded before the PADEMCO digital system was implemented. They are
+                  <strong> separate from your new ticket loans</strong> and must be settled with the cooperative.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-white/80 border border-amber-200 rounded-xl p-3">
+                  <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Total Old Loans</p>
+                  <p className="text-2xl font-black text-amber-800 mt-0.5">{oldLoan.totalOldLoans}</p>
+                  <p className="text-[10px] text-amber-600 font-semibold">loan account{oldLoan.totalOldLoans > 1 ? "s" : ""} unpaid</p>
+                </div>
+                <div className="bg-white/80 border border-amber-200 rounded-xl p-3">
+                  <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Loan Exists Since</p>
+                  <p className="text-base font-black text-amber-800 mt-0.5">
+                    {new Date(oldLoan.dateSince).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                  </p>
+                  <p className="text-[10px] text-amber-600 font-semibold">
+                    {Math.floor((new Date() - new Date(oldLoan.dateSince)) / (1000 * 60 * 60 * 24 * 30))} months ago
+                  </p>
+                </div>
+                <div className="bg-white/80 border border-amber-200 rounded-xl p-3">
+                  <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Encoded By</p>
+                  <p className="text-sm font-black text-amber-800 mt-0.5 truncate">{oldLoan.encodedBy}</p>
+                  <p className="text-[10px] text-amber-600 font-semibold">PADEMCO Bookkeeper</p>
+                </div>
+              </div>
+
+              {oldLoan.remarks && (
+                <div className="bg-white/60 border border-amber-200 rounded-xl p-3">
+                  <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest mb-1">Bookkeeper Notes</p>
+                  <p className="text-xs text-amber-800 font-medium leading-relaxed">{oldLoan.remarks}</p>
+                </div>
+              )}
+
+              <p className="text-xs text-amber-600 font-semibold pt-1">
+                📌 Please visit the PADEMCO office to settle these pre-existing loans.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 2. SUMMARY CARDS (Clean & Large) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
