@@ -28,6 +28,7 @@ model User {
   encodedOldLoans    OldLoan[]
   oldLoanRequests    OldLoanRequest[]         @relation("RequestedBy")
   reviewedRequests   OldLoanRequest[]         @relation("ReviewedBy")
+  oldLoanPayments    OldLoanPayment[]         @relation("OldLoanPayments")
 }
 
 model Office {
@@ -191,16 +192,18 @@ model AgentCommissionPayment {
 }
 
 model OldLoan {
-  id            String   @id @default(uuid())
-  employeeId    String   @unique
-  employee      Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  totalOldLoans Int
-  dateSince     DateTime
-  remarks       String?
-  encodedById   String
-  encodedBy     User     @relation(fields: [encodedById], references: [id])
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String            @id @default(uuid())
+  employeeId      String            @unique
+  employee        Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  totalOldLoans   Int
+  estimatedAmount Float?            // Optional estimated total amount owed
+  dateSince       DateTime
+  remarks         String?
+  encodedById     String
+  encodedBy       User              @relation(fields: [encodedById], references: [id])
+  payments        OldLoanPayment[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 }
 
 model OldLoanRequest {
@@ -216,4 +219,19 @@ model OldLoanRequest {
   remarks       String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+model OldLoanPayment {
+  id          String   @id @default(uuid())
+  oldLoanId   String
+  oldLoan     OldLoan  @relation(fields: [oldLoanId], references: [id], onDelete: Cascade)
+  amount      Float
+  paymentType String   // "FULL" | "PARTIAL"
+  remarks     String?
+  paidById    String
+  paidBy      User     @relation("OldLoanPayments", fields: [paidById], references: [id])
+  receiptNumber String? @unique
+  createdAt   DateTime @default(now())
+
+  @@index([oldLoanId])
 }

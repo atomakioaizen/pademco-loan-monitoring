@@ -16,11 +16,11 @@ export const metadata = {
 export default async function ReportsPage({ searchParams }) {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (session.role !== "ADMIN") redirect("/");
+  if (session.role !== "ADMIN" && session.role !== "BOOKKEEPER") redirect("/");
 
   // Get filter parameters from URL
   const resolvedSearchParams = await searchParams;
-  const reportType = resolvedSearchParams.type || "outstanding"; // "outstanding", "fullypaid", "overdue", "collections", "profit", "aging", "ledger"
+  const reportType = resolvedSearchParams.type || "outstanding"; // "outstanding", "fullypaid", "overdue", "collections", "profit", "aging", "ledger", "fee_breakdown"
   const officeFilter = resolvedSearchParams.office || "";
   const employeeFilter = resolvedSearchParams.employee || "";
   const fromDateStr = resolvedSearchParams.from || "";
@@ -56,6 +56,7 @@ export default async function ReportsPage({ searchParams }) {
   let inactiveEmployeesPromise = Promise.resolve([]);
   let ledgerEmployeePromise = Promise.resolve(null);
   let ledgerBookingsPromise = Promise.resolve([]);
+  let feeBreakdownPromise = Promise.resolve([]);
 
   if (reportType === "outstanding") {
     outstandingPromise = db.loan.findMany({
@@ -173,6 +174,27 @@ export default async function ReportsPage({ searchParams }) {
       },
       orderBy: { createdAt: "asc" },
     });
+  } else if (reportType === "fee_breakdown") {
+    feeBreakdownPromise = db.loan.findMany({
+      where: {
+        booking: { isArchived: false },
+        AND: [
+          officeFilter ? { booking: { employee: { officeId: officeFilter } } } : {},
+          employeeFilter ? { booking: { employeeId: employeeFilter } } : {},
+          fromDateStr || toDateStr ? { createdAt: dateFilter } : {},
+        ],
+      },
+      include: {
+        booking: {
+          include: {
+            employee: { include: { office: true } },
+            airline: true,
+          },
+        },
+        payments: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
   }
 
   // Load all required data in parallel
@@ -188,7 +210,8 @@ export default async function ReportsPage({ searchParams }) {
     inactiveBookings,
     inactiveEmployees,
     ledgerEmployeeRaw,
-    ledgerBookings
+    ledgerBookings,
+    feeBreakdownLoans,
   ] = await Promise.all([
     db.office.findMany({ orderBy: { name: "asc" } }),
     db.employee.findMany({ orderBy: { fullName: "asc" } }),
@@ -201,7 +224,8 @@ export default async function ReportsPage({ searchParams }) {
     inactiveBookingsPromise,
     inactiveEmployeesPromise,
     ledgerEmployeePromise,
-    ledgerBookingsPromise
+    ledgerBookingsPromise,
+    feeBreakdownPromise,
   ]);
 
   // --- Fetch Report Data based on Active Tab ---
@@ -536,6 +560,41 @@ export default async function ReportsPage({ searchParams }) {
         "Running Balance": "Balance",
       };
     }
+  } else if (reportType === "fee_breakdown") {
+    reportData = feeBreakdownLoans;
+    exportData = feeBreakdownLoans.map((l) => {
+      const serviceFee = l.booking.serviceFee;
+      const interestAmount = l.interestAmount;
+      const principal = l.principalAmount;
+      const totalAmountPayable = l.totalAmountPayable;
+      const remainingBalance = l.remainingBalance;
+      const totalPaid = totalAmountPayable - remainingBalance;
+      
+      return {
+        "PNR Reference": l.booking.referenceNumber,
+        "Employee ID": l.booking.employee.employeeId,
+        "Employee Name": l.booking.employee.fullName,
+        "Office/Division": l.booking.employee.office.name,
+        "Destination": l.booking.destination,
+        "Principal": principal,
+        "Markup Fee (Service Fee)": serviceFee,
+        "Interest Amount": interestAmount,
+        "Total Paid": totalPaid,
+        "Remaining Balance": remainingBalance,
+      };
+    });
+    headersMap = {
+      "PNR Reference": "PNR Reference",
+      "Employee ID": "Employee ID",
+      "Employee Name": "Employee Name",
+      "Office/Division": "Office/Division",
+      "Destination": "Destination",
+      "Principal": "Principal",
+      "Markup Fee (Service Fee)": "Markup Fee",
+      "Interest Amount": "Interest Amount",
+      "Total Paid": "Total Paid",
+      "Remaining Balance": "Balance",
+    };
   }
 
   // Define tab navigation styling helper
@@ -648,7 +707,7 @@ export default async function ReportsPage({ searchParams }) {
         </div>
 
         {/* 2. Report Type Selector tabs (no-print) */}
-        <div className="no-print grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
+        <div className="no-print grid grid-cols-2 sm:grid-cols-5 md:grid-cols-9 gap-2">
           <Link href="/reports?type=outstanding" className={getTabClass("outstanding")}>Outstanding</Link>
           <Link href="/reports?type=fullypaid" className={getTabClass("fullypaid")}>Fully Paid</Link>
           <Link href="/reports?type=overdue" className={getTabClass("overdue")}>Overdue</Link>
@@ -657,6 +716,7 @@ export default async function ReportsPage({ searchParams }) {
           <Link href="/reports?type=aging" className={getTabClass("aging")}>Aging buckets</Link>
           <Link href="/reports?type=inactive" className={getTabClass("inactive")}>Inactive Emps</Link>
           <Link href="/reports?type=ledger" className={getTabClass("ledger")}>Employee Ledger</Link>
+          <Link href="/reports?type=fee_breakdown" className={getTabClass("fee_breakdown")}>Fee Breakdown</Link>
         </div>
 
         {/* 3. REPORT CONTENTS DISPLAY */}

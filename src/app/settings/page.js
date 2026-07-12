@@ -20,7 +20,7 @@ export const metadata = {
 export default async function SettingsPage({ searchParams }) {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (session.role !== "ADMIN") redirect("/");
+  if (session.role !== "ADMIN" && session.role !== "BOOKKEEPER") redirect("/");
 
   const resolvedParams = await searchParams;
   const editUserId = resolvedParams?.editUserId || null;
@@ -161,7 +161,7 @@ export default async function SettingsPage({ searchParams }) {
   async function createUserAction(formData) {
     "use server";
     const session = await getSession();
-    if (!session || session.role !== "ADMIN") {
+    if (!session || (session.role !== "ADMIN" && session.role !== "BOOKKEEPER")) {
       throw new Error("Unauthorized");
     }
 
@@ -428,13 +428,15 @@ export default async function SettingsPage({ searchParams }) {
         </div>
 
         {/* Dynamic Multi-Section Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className={session.role === "ADMIN" ? "grid grid-cols-1 lg:grid-cols-2 gap-8" : "max-w-2xl mx-auto"}>
           
           {/* Section 1: System formulas & default rules */}
-          <CooperativeSettingsForm
-            settings={settings}
-            action={saveSettings}
-          />
+          {session.role === "ADMIN" && (
+            <CooperativeSettingsForm
+              settings={settings}
+              action={saveSettings}
+            />
+          )}
 
           <div className="space-y-8">
             {/* Section 2: Create user credentials */}
@@ -444,15 +446,18 @@ export default async function SettingsPage({ searchParams }) {
             />
 
             {/* Section 2b: Booking Agent Commission settings */}
-            <AgentCommissionSettingsForm
-              initialRate={settings.agent_commission_rate || "75"}
-              action={saveCommissionRateAction}
-            />
+            {session.role === "ADMIN" && (
+              <AgentCommissionSettingsForm
+                initialRate={settings.agent_commission_rate || "75"}
+                action={saveCommissionRateAction}
+              />
+            )}
           </div>
         </div>
 
         {/* Section 3: List all system accounts */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+        {session.role === "ADMIN" && (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
           <div className="px-6 py-5 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
             <div>
               <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
@@ -538,6 +543,7 @@ export default async function SettingsPage({ searchParams }) {
             </table>
           </div>
         </div>
+        )}
 
         {/* Edit Staff User Modal */}
         {editUser && (
@@ -647,8 +653,9 @@ export default async function SettingsPage({ searchParams }) {
         )}
 
         {/* Section 4: Archived Bookings Trashbin */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-          <div className="px-6 py-5 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
+        {session.role === "ADMIN" && (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+            <div className="px-6 py-5 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
             <div>
               <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
                 <span>🗑️ Archived Bookings Trashbin</span>
@@ -709,6 +716,7 @@ export default async function SettingsPage({ searchParams }) {
             )}
           </div>
         </div>
+        )}
       </div>
     </AppLayout>
   );

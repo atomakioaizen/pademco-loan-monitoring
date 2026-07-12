@@ -739,6 +739,14 @@ export default function BookingFormClient({
                 <span className="font-semibold text-slate-505">Total Old Loans:</span>
                 <span className="font-black text-slate-800">{selectedEmp.oldLoanDetails?.totalOldLoans}</span>
               </div>
+              {selectedEmp.oldLoanDetails?.estimatedAmount && (
+                <div className="flex justify-between text-xs">
+                  <span className="font-semibold text-amber-700">Estimated Total Amount:</span>
+                  <span className="font-black text-amber-800">
+                    ₱{selectedEmp.oldLoanDetails.estimatedAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between text-xs">
                 <span className="font-semibold text-slate-505">Loan Exists Since:</span>
                 <span className="font-bold text-slate-700">

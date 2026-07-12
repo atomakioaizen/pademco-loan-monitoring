@@ -11,6 +11,41 @@ export default function ReportsTableClient({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50); // Blazing-fast page rendering limit!
 
+  // Calculate Totals for Fee Breakdown
+  let totalFeeMarkup = 0;
+  let totalInterestCollected = 0;
+  let totalPrincipalAdvanced = 0;
+  let totalBalanceOutstanding = 0;
+  let totalPaidOverall = 0;
+
+  if (reportType === "fee_breakdown") {
+    reportData.forEach((l) => {
+      totalFeeMarkup += l.booking?.serviceFee || 0;
+      totalInterestCollected += l.interestAmount || 0;
+      totalPrincipalAdvanced += l.principalAmount || 0;
+      totalBalanceOutstanding += l.remainingBalance || 0;
+      totalPaidOverall += ((l.totalAmountPayable || 0) - (l.remainingBalance || 0)) || 0;
+    });
+  }
+
+  const renderTableFooter = () => {
+    if (reportType === "fee_breakdown") {
+      return (
+        <tfoot className="bg-slate-50 font-bold border-t border-slate-200 text-slate-800 font-mono text-xs">
+          <tr>
+            <td colSpan={3} className="px-6 py-4 text-left font-black uppercase">Grand Totals</td>
+            <td className="px-6 py-4">₱{totalPrincipalAdvanced.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+            <td className="px-6 py-4 text-right text-primary">₱{totalFeeMarkup.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+            <td className="px-6 py-4 text-right text-emerald-700">₱{totalInterestCollected.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+            <td className="px-6 py-4 text-right">₱{totalPaidOverall.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+            <td className="px-6 py-4 text-right font-black">₱{totalBalanceOutstanding.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+          </tr>
+        </tfoot>
+      );
+    }
+    return null;
+  };
+
   const totalRecords = reportData.length;
   const totalPages = Math.ceil(totalRecords / pageSize);
   const paginatedData = reportData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -24,7 +59,7 @@ export default function ReportsTableClient({
   // Helper to render table contents (can be called for paginated screen data or full print data)
   const renderTableRows = (dataToRender) => {
     if (dataToRender.length === 0) {
-      const colSpan = reportType === "aging" ? 8 : (reportType === "inactive" || reportType === "ledger" ? 6 : 7);
+      const colSpan = (reportType === "aging" || reportType === "fee_breakdown") ? 8 : (reportType === "inactive" || reportType === "ledger" ? 6 : 7);
       return (
         <tr>
           <td colSpan={colSpan} className="px-6 py-10 text-center text-slate-400">
@@ -176,6 +211,30 @@ export default function ReportsTableClient({
       ));
     }
 
+    if (reportType === "fee_breakdown") {
+      return dataToRender.map((l) => {
+        const serviceFee = l.booking.serviceFee;
+        const interestAmount = l.interestAmount;
+        const principal = l.principalAmount;
+        const totalAmountPayable = l.totalAmountPayable;
+        const remainingBalance = l.remainingBalance;
+        const totalPaid = totalAmountPayable - remainingBalance;
+        
+        return (
+          <tr key={l.id} className="hover:bg-slate-50 transition-colors">
+            <td className="px-6 py-4 font-bold font-mono text-slate-700 text-xs">{l.booking.referenceNumber}</td>
+            <td className="px-6 py-4 font-bold text-slate-700">{l.booking.employee.fullName}</td>
+            <td className="px-6 py-4 text-slate-600 font-medium">{l.booking.employee.office.name}</td>
+            <td className="px-6 py-4 font-mono text-slate-600">₱{principal.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+            <td className="px-6 py-4 font-mono text-right text-indigo-600 font-bold">₱{serviceFee.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+            <td className="px-6 py-4 font-mono text-right text-emerald-600 font-bold">₱{interestAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+            <td className="px-6 py-4 font-mono text-right text-slate-700">₱{totalPaid.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+            <td className="px-6 py-4 font-mono text-right font-black text-slate-800">₱{remainingBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+          </tr>
+        );
+      });
+    }
+
     return null;
   };
 
@@ -271,6 +330,20 @@ export default function ReportsTableClient({
         </tr>
       );
     }
+    if (reportType === "fee_breakdown") {
+      return (
+        <tr className="bg-slate-50 text-slate-600 font-bold">
+          <th scope="col" className="px-6 py-3.5">PNR Reference</th>
+          <th scope="col" className="px-6 py-3.5">Employee Name</th>
+          <th scope="col" className="px-6 py-3.5">Office</th>
+          <th scope="col" className="px-6 py-3.5">Principal</th>
+          <th scope="col" className="px-6 py-3.5 text-right">Markup Fee</th>
+          <th scope="col" className="px-6 py-3.5 text-right">Interest Collected</th>
+          <th scope="col" className="px-6 py-3.5 text-right">Total Paid</th>
+          <th scope="col" className="px-6 py-3.5 text-right">Balance</th>
+        </tr>
+      );
+    }
     return null;
   };
 
@@ -362,6 +435,32 @@ export default function ReportsTableClient({
 
   return (
     <div>
+      {/* Fee Breakdown Summary Cards (no-print) */}
+      {reportType === "fee_breakdown" && (
+        <div className="no-print p-6 bg-slate-50 border-b border-slate-200 grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+            <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Principal</span>
+            <span className="block text-base font-black text-slate-800 mt-1 font-mono">₱{totalPrincipalAdvanced.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+            <span className="block text-[9px] font-black text-primary uppercase tracking-widest">Total Markup Fees</span>
+            <span className="block text-base font-black text-primary mt-1 font-mono">₱{totalFeeMarkup.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+            <span className="block text-[9px] font-black text-emerald-800 uppercase tracking-widest">Total Interest</span>
+            <span className="block text-base font-black text-emerald-700 mt-1 font-mono">₱{totalInterestCollected.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+            <span className="block text-[9px] font-black text-slate-500 uppercase tracking-widest">Total Amount Paid</span>
+            <span className="block text-base font-black text-slate-700 mt-1 font-mono">₱{totalPaidOverall.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+            <span className="block text-[9px] font-black text-rose-800 uppercase tracking-widest">Outstanding Balance</span>
+            <span className="block text-base font-black text-rose-700 mt-1 font-mono">₱{totalBalanceOutstanding.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+          </div>
+        </div>
+      )}
+
       {/* 1. SCREEN-ONLY VIEW (Paginated and gorgeous!) */}
       <div className="print:hidden">
         {/* Dynamic page entries settings */}
@@ -398,6 +497,7 @@ export default function ReportsTableClient({
             <tbody className="divide-y divide-slate-200 text-slate-700">
               {renderTableRows(paginatedData)}
             </tbody>
+            {renderTableFooter()}
           </table>
         </div>
 
@@ -463,6 +563,7 @@ export default function ReportsTableClient({
           <tbody className="divide-y divide-slate-200 text-slate-700">
             {renderTableRows(reportData)}
           </tbody>
+          {renderTableFooter()}
         </table>
       </div>
     </div>

@@ -5,7 +5,6 @@ import AppLayout from "@/components/AppLayout";
 import PaymentsConsoleClient from "./PaymentsConsoleClient";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +22,8 @@ export default async function PaymentsPage() {
     payments,
     activeLoansRaw,
     settingsList,
-    activeBookings
+    activeBookings,
+    oldLoansRaw,
   ] = await Promise.all([
     db.payment.findMany({
       include: {
@@ -64,7 +64,19 @@ export default async function PaymentsPage() {
         }
       },
       select: { employeeId: true, flightCount: true }
-    })
+    }),
+    // Old loans with their payment history
+    db.oldLoan.findMany({
+      include: {
+        employee: { include: { office: true } },
+        payments: {
+          orderBy: { createdAt: "desc" },
+        },
+      },
+      orderBy: {
+        employee: { fullName: "asc" },
+      },
+    }),
   ]);
 
   const settings = settingsList.reduce((acc, curr) => {
@@ -89,7 +101,28 @@ export default async function PaymentsPage() {
     },
   }));
 
-  // Server Action to record payment
+  // Serialize old loans for client (keep only what's needed)
+  const oldLoans = oldLoansRaw.map((ol) => ({
+    id: ol.id,
+    employeeId: ol.employeeId,
+    employeeName: ol.employee.fullName,
+    employeeOffice: ol.employee.office.name,
+    totalOldLoans: ol.totalOldLoans,
+    estimatedAmount: ol.estimatedAmount,
+    dateSince: ol.dateSince.toISOString(),
+    remarks: ol.remarks,
+    totalPaid: ol.payments.reduce((sum, p) => sum + p.amount, 0),
+    payments: ol.payments.map((p) => ({
+      id: p.id,
+      amount: p.amount,
+      paymentType: p.paymentType,
+      remarks: p.remarks,
+      receiptNumber: p.receiptNumber,
+      createdAt: p.createdAt.toISOString(),
+    })),
+  }));
+
+  // Server Action to record regular loan payment
   async function recordPayment(formData) {
     "use server";
     const session = await getSession();
@@ -109,32 +142,23 @@ export default async function PaymentsPage() {
     }
 
     try {
-      // Validate OR duplicate
-      const existingOR = await db.payment.findUnique({
-        where: { receiptNumber },
-      });
-
+      const existingOR = await db.payment.findUnique({ where: { receiptNumber } });
       if (existingOR) {
         return { error: "This Official Receipt (OR) Number has already been used." };
       }
 
       const paymentDate = new Date(paymentDateStr);
 
-      // Perform transaction to deduct balance and save payment
-      const result = await db.$transaction(async (tx) => {
-        const loan = await tx.loan.findUnique({
-          where: { id: loanId },
-        });
-
+      await db.$transaction(async (tx) => {
+        const loan = await tx.loan.findUnique({ where: { id: loanId } });
         if (!loan) throw new Error("Loan account not found.");
 
-        // Load dynamic settings from database inside the transaction
         const settingsList = await tx.systemSetting.findMany();
         const settings = settingsList.reduce((acc, curr) => {
           acc[curr.key] = curr.value;
           return acc;
         }, {});
-        // Calculate expected payment amount (principal + penalty if overdue)
+
         let expectedAmount = loan.remainingBalance;
         const today = new Date(paymentDate);
         const dueDate = new Date(loan.dueDate);
@@ -149,19 +173,13 @@ export default async function PaymentsPage() {
           expectedAmount = loan.remainingBalance + penalty;
         }
 
-        // Validate that the paid amount matches the required expected amount (including penalty)
         if (amountPaid < expectedAmount) {
           throw new Error(
             `Payment of ₱${amountPaid.toLocaleString("en-US", { minimumFractionDigits: 2 })} is less than the required full settlement of ₱${expectedAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}.`
           );
         }
 
-        // Since only full settlement is allowed, the outstanding balance is always reduced to 0
-        const newBalance = 0;
-        const newStatus = "FULLY_PAID";
-
-        // 1. Create payment record
-        const payment = await tx.payment.create({
+        await tx.payment.create({
           data: {
             loanId,
             receiptNumber,
@@ -173,13 +191,9 @@ export default async function PaymentsPage() {
           },
         });
 
-        // 2. Update loan balances
         await tx.loan.update({
           where: { id: loanId },
-          data: {
-            remainingBalance: newBalance,
-            status: newStatus,
-          },
+          data: { remainingBalance: 0, status: "FULLY_PAID" },
         });
 
         await logAction(
@@ -188,13 +202,67 @@ export default async function PaymentsPage() {
           "LOAN",
           `Recorded payment of ₱${amountPaid} under OR# ${receiptNumber} for Loan ID: ${loanId}`
         );
-
-        return payment;
       });
 
     } catch (e) {
       console.error(e);
       return { error: e.message || "Failed to process payment." };
+    }
+
+    revalidatePath("/payments");
+  }
+
+  // Server Action to record Old Loan payment (FULL or PARTIAL — cashier decides)
+  async function recordOldLoanPayment(formData) {
+    "use server";
+    const session = await getSession();
+    if (!session || session.role !== "CASHIER") {
+      throw new Error("Unauthorized");
+    }
+
+    const oldLoanId = formData.get("oldLoanId");
+    const receiptNumber = formData.get("receiptNumber")?.trim();
+    const amount = parseFloat(formData.get("amount") || "0");
+    const paymentType = formData.get("paymentType") || "FULL"; // "FULL" | "PARTIAL"
+    const remarks = formData.get("remarks")?.trim();
+
+    if (!oldLoanId || !receiptNumber || amount <= 0) {
+      return { error: "Please fill in all required fields." };
+    }
+
+    try {
+      const existingOR = await db.oldLoanPayment.findFirst({
+        where: { receiptNumber },
+      });
+      if (existingOR) {
+        return { error: `OR# ${receiptNumber} has already been used.` };
+      }
+
+      const oldLoan = await db.oldLoan.findUnique({ where: { id: oldLoanId } });
+      if (!oldLoan) {
+        return { error: "Old loan record not found." };
+      }
+
+      await db.oldLoanPayment.create({
+        data: {
+          oldLoanId,
+          amount,
+          paymentType,
+          remarks,
+          receiptNumber,
+          paidById: session.id,
+        },
+      });
+
+      await logAction(
+        session.id,
+        "PAYMENT",
+        "OLD_LOAN",
+        `Cashier recorded ${paymentType} old loan payment of ₱${amount} (OR# ${receiptNumber}) for Old Loan ID: ${oldLoanId}`
+      );
+    } catch (e) {
+      console.error(e);
+      return { error: e.message || "Failed to record old loan payment." };
     }
 
     revalidatePath("/payments");
@@ -219,6 +287,8 @@ export default async function PaymentsPage() {
           maxActiveFlights={maxActiveFlights}
           strictInstallments={strictInstallments}
           action={recordPayment}
+          oldLoans={oldLoans}
+          oldLoanAction={recordOldLoanPayment}
         />
       </div>
     </AppLayout>

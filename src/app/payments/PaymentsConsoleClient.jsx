@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import RecordPaymentForm from "./RecordPaymentForm";
+import OldLoanPaymentForm from "./OldLoanPaymentForm";
 import Link from "next/link";
 
 export default function PaymentsConsoleClient({
@@ -10,8 +11,10 @@ export default function PaymentsConsoleClient({
   maxActiveFlights,
   strictInstallments,
   action,
+  oldLoans = [],
+  oldLoanAction,
 }) {
-  const [activeTab, setActiveTab] = useState("process"); // "process" | "ledger"
+  const [activeTab, setActiveTab] = useState("process"); // "process" | "oldloan" | "ledger"
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredPayments = payments.filter((pay) => {
@@ -36,7 +39,24 @@ export default function PaymentsConsoleClient({
           }`}
         >
           <span className="text-base">💵</span>
-          <span>Record Installment Payment</span>
+          <span>Record Loan Payment</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("oldloan")}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-black transition-all cursor-pointer border select-none ${
+            activeTab === "oldloan"
+              ? "bg-white text-amber-700 border-slate-250 shadow-sm"
+              : "text-slate-500 hover:text-slate-800 hover:bg-slate-100/50 border-transparent"
+          }`}
+        >
+          <span className="text-base">📋</span>
+          <span>Old Loan Payment</span>
+          {oldLoans.length > 0 && (
+            <span className="bg-amber-500 text-white rounded-full px-2 py-0.5 text-[10px] font-bold">
+              {oldLoans.length}
+            </span>
+          )}
         </button>
 
         <button
@@ -60,6 +80,12 @@ export default function PaymentsConsoleClient({
             maxActiveFlights={maxActiveFlights}
             strictInstallments={strictInstallments}
             action={action}
+            onSuccess={() => setActiveTab("ledger")}
+          />
+        ) : activeTab === "oldloan" ? (
+          <OldLoanPaymentForm
+            oldLoans={oldLoans}
+            action={oldLoanAction}
             onSuccess={() => setActiveTab("ledger")}
           />
         ) : (

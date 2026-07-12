@@ -13,6 +13,8 @@ export async function encodeOldLoanAction(formData) {
 
   const employeeId = formData.get("employeeId");
   const totalOldLoans = parseInt(formData.get("totalOldLoans") || "0");
+  const estimatedAmountRaw = formData.get("estimatedAmount");
+  const estimatedAmount = estimatedAmountRaw ? parseFloat(estimatedAmountRaw) : null;
   const dateSinceStr = formData.get("dateSince");
   const remarks = formData.get("remarks")?.trim() || null;
 
@@ -34,6 +36,7 @@ export async function encodeOldLoanAction(formData) {
       where: { employeeId },
       update: {
         totalOldLoans,
+        estimatedAmount,
         dateSince,
         remarks,
         encodedById: session.id,
@@ -41,6 +44,7 @@ export async function encodeOldLoanAction(formData) {
       create: {
         employeeId,
         totalOldLoans,
+        estimatedAmount,
         dateSince,
         remarks,
         encodedById: session.id,

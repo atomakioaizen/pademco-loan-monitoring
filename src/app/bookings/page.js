@@ -608,6 +608,7 @@ export default async function BookingsPage() {
               hasOldLoan: !!oldLoan,
               oldLoanDetails: oldLoan ? {
                 totalOldLoans: oldLoan.totalOldLoans,
+                estimatedAmount: oldLoan.estimatedAmount,
                 dateSince: oldLoan.dateSince,
               } : null,
               oldLoanRequestStatus: req ? req.status : "NONE",

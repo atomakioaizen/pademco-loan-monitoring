@@ -17,7 +17,7 @@ function parseTokenPayload(token) {
   }
 }
 
-export function middleware(request) {
+export function proxy(request) {
   const { pathname } = request.nextUrl;
   
   // Public files, static folders, api/auth paths
@@ -46,22 +46,28 @@ export function middleware(request) {
 
   // Role-based authorization checks
   if (user) {
-    // 1. Settings & User Management require ADMIN
+    // 1. Settings & User Management: ADMIN full access, BOOKKEEPER limited (create VIEWER only)
     if (
       (pathname.startsWith("/settings") || pathname.startsWith("/users")) &&
-      user.role !== "ADMIN"
+      user.role !== "ADMIN" && user.role !== "BOOKKEEPER"
     ) {
       const homeUrl = new URL("/", request.url);
       return NextResponse.redirect(homeUrl);
     }
 
-    // 2. Payments, Reports, Bookings, Offices, Airlines, Audit, and Employees require ADMIN or CASHIER
-    const adminOrCashierRoutes = ["/payments", "/reports", "/bookings", "/offices", "/airlines", "/employees", "/audit"];
+    // 2. Reports: ADMIN and BOOKKEEPER only
+    if (pathname.startsWith("/reports") && user.role !== "ADMIN" && user.role !== "BOOKKEEPER") {
+      const homeUrl = new URL("/", request.url);
+      return NextResponse.redirect(homeUrl);
+    }
+
+    // 3. Bookings, Payments, Offices, Airlines, Audit, Employees: ADMIN, CASHIER, AGENT, BOOKKEEPER — not VIEWER
+    const staffOnlyRoutes = ["/payments", "/bookings", "/offices", "/airlines", "/employees", "/audit", "/bookkeeper", "/commissions"];
     if (
-      adminOrCashierRoutes.some((route) => pathname.startsWith(route)) &&
+      staffOnlyRoutes.some((route) => pathname.startsWith(route)) &&
       user.role === "VIEWER"
     ) {
-      // Exclude receipt page from blocking for VIEWER so they can print their own receipts
+      // VIEWER can still print their own payment receipts
       if (pathname.startsWith("/payments/receipt/")) {
         return NextResponse.next();
       }

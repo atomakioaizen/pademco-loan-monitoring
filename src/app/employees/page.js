@@ -16,7 +16,7 @@ export const metadata = {
 export default async function EmployeesPage({ searchParams }) {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (session.role !== "ADMIN") redirect("/");
+  if (session.role !== "ADMIN" && session.role !== "BOOKKEEPER") redirect("/");
 
   const resolvedSearchParams = await searchParams;
   const search = resolvedSearchParams.search || "";
@@ -79,7 +79,7 @@ export default async function EmployeesPage({ searchParams }) {
   async function saveEmployee(formData) {
     "use server";
     const session = await getSession();
-    if (!session || session.role !== "ADMIN") throw new Error("Unauthorized");
+    if (!session || (session.role !== "ADMIN" && session.role !== "BOOKKEEPER")) throw new Error("Unauthorized");
 
     const id = formData.get("id");
     const employeeId = formData.get("employeeId")?.trim();
@@ -217,7 +217,7 @@ export default async function EmployeesPage({ searchParams }) {
   async function setDefaultPassword(formData) {
     "use server";
     const session = await getSession();
-    if (!session || session.role !== "ADMIN") throw new Error("Unauthorized");
+    if (!session || (session.role !== "ADMIN" && session.role !== "BOOKKEEPER")) throw new Error("Unauthorized");
 
     const empDbId = formData.get("empDbId");
     if (!empDbId) return;
@@ -248,7 +248,7 @@ export default async function EmployeesPage({ searchParams }) {
   async function deleteEmployee(formData) {
     "use server";
     const session = await getSession();
-    if (!session || session.role !== "ADMIN") throw new Error("Unauthorized");
+    if (!session || (session.role !== "ADMIN" && session.role !== "BOOKKEEPER")) throw new Error("Unauthorized");
 
     const id = formData.get("id");
     if (!id) return;
@@ -285,7 +285,7 @@ export default async function EmployeesPage({ searchParams }) {
   async function archiveEmployee(formData) {
     "use server";
     const session = await getSession();
-    if (!session || session.role !== "ADMIN") throw new Error("Unauthorized");
+    if (!session || (session.role !== "ADMIN" && session.role !== "BOOKKEEPER")) throw new Error("Unauthorized");
 
     const id = formData.get("id");
     if (!id) return;
@@ -309,7 +309,7 @@ export default async function EmployeesPage({ searchParams }) {
   async function restoreEmployee(formData) {
     "use server";
     const session = await getSession();
-    if (!session || session.role !== "ADMIN") throw new Error("Unauthorized");
+    if (!session || (session.role !== "ADMIN" && session.role !== "BOOKKEEPER")) throw new Error("Unauthorized");
 
     const id = formData.get("id");
     if (!id) return;
@@ -330,7 +330,7 @@ export default async function EmployeesPage({ searchParams }) {
   async function updateEmployeeStatus(formData) {
     "use server";
     const session = await getSession();
-    if (!session || session.role !== "ADMIN") throw new Error("Unauthorized");
+    if (!session || (session.role !== "ADMIN" && session.role !== "BOOKKEEPER")) throw new Error("Unauthorized");
 
     const employeeId = formData.get("employeeId");
     const status = formData.get("status");
