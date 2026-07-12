@@ -12,7 +12,7 @@ function createPrismaClient() {
   const pool = new pg.Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
-    max: 2,                    // Keep pool small for serverless
+    max: 10,                   // Allow more concurrent connections for parallel queries
     idleTimeoutMillis: 10000,  // Release idle connections quickly
     connectionTimeoutMillis: 5000, // Fail fast if DB unreachable
   });

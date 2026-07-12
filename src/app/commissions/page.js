@@ -38,19 +38,22 @@ export default async function CommissionsPage({ searchParams }) {
     ? { role: "AGENT", id: session.id }
     : { role: "AGENT" };
 
-  const agents = await db.user.findMany({
-    where: agentQueryFilter,
-    select: {
-      id: true,
-      username: true,
-      name: true,
-      commissionRate: true,
-    },
-    orderBy: { name: "asc" },
-  });
+  // 1. Fetch agents and settings in parallel
+  const [agents, settingsList] = await Promise.all([
+    db.user.findMany({
+      where: agentQueryFilter,
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        commissionRate: true,
+      },
+      orderBy: { name: "asc" },
+    }),
+    db.systemSetting.findMany()
+  ]);
 
   // Fetch all system settings to get the general commission rate
-  const settingsList = await db.systemSetting.findMany();
   const settings = settingsList.reduce((acc, curr) => {
     acc[curr.key] = curr.value;
     return acc;
@@ -59,67 +62,70 @@ export default async function CommissionsPage({ searchParams }) {
   const generalRateStr = settings.agent_commission_rate;
   const generalRate = generalRateStr ? parseFloat(generalRateStr) : 75.0;
 
-  // 2. Load Bookings and Payout Statuses for each agent for the selected month period
-  const agentsData = await Promise.all(
-    agents.map(async (agent) => {
-      // Get all bookings made by this agent in the selected month
-      const bookings = await db.booking.findMany({
-        where: {
-          bookedById: agent.id,
-          createdAt: {
-            gte: startOfMonth,
-            lte: endOfMonth,
-          },
-          isArchived: false,
-        },
-        include: {
-          employee: {
-            include: { office: true },
-          },
-          airline: true,
-          loan: true,
-          histories: true,
-        },
-        orderBy: { createdAt: "desc" },
-      });
+  const agentIds = agents.map((a) => a.id);
 
-      // Get any existing commission payment status for this agent and month
-      const payment = await db.agentCommissionPayment.findUnique({
-        where: {
-          agentId_monthYear: {
-            agentId: agent.id,
-            monthYear: selectedMonth,
-          },
+  // 2. Fetch all bookings and commission payments in parallel for all relevant agents (bulk fetch)
+  const [allBookings, allPayments] = await Promise.all([
+    db.booking.findMany({
+      where: {
+        bookedById: { in: agentIds },
+        createdAt: {
+          gte: startOfMonth,
+          lte: endOfMonth,
         },
-      });
-
-      const totalBookings = bookings.length;
-      const fullyPaidBookingsCount = bookings.filter(b => b.loan && b.loan.status === "FULLY_PAID").length;
-      const totalRebookings = bookings.reduce((sum, b) => sum + b.histories.length, 0);
-      
-      // Calculate commission: use the locked amount if paid, otherwise calculate in real-time based on fully paid bookings
-      const activeRate = payment ? payment.paidRate : generalRate;
-      const commissionAmount = payment ? payment.amount : (fullyPaidBookingsCount * activeRate);
-
-      return {
-        ...agent,
-        bookings,
-        totalBookings,
-        fullyPaidBookingsCount,
-        totalRebookings,
-        commissionAmount,
-        commissionRate: activeRate,
-        paymentStatus: payment ? "PAID" : "UNPAID",
-        paymentDetails: payment ? {
-          paidAt: payment.paidAt,
-          paidById: payment.paidById,
-          paidRate: payment.paidRate,
-          amount: payment.amount,
-          remarks: payment.remarks,
-        } : null,
-      };
+        isArchived: false,
+      },
+      include: {
+        employee: {
+          include: { office: true },
+        },
+        airline: true,
+        loan: true,
+        histories: true,
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.agentCommissionPayment.findMany({
+      where: {
+        agentId: { in: agentIds },
+        monthYear: selectedMonth,
+      },
     })
-  );
+  ]);
+
+  // 3. Map agents details in memory (no nested database round-trips)
+  const agentsData = agents.map((agent) => {
+    const bookings = allBookings.filter((b) => b.bookedById === agent.id);
+    const payment = allPayments.find(
+      (p) => p.agentId === agent.id && p.monthYear === selectedMonth
+    );
+
+    const totalBookings = bookings.length;
+    const fullyPaidBookingsCount = bookings.filter(b => b.loan && b.loan.status === "FULLY_PAID").length;
+    const totalRebookings = bookings.reduce((sum, b) => sum + b.histories.length, 0);
+    
+    // Calculate commission: use the locked amount if paid, otherwise calculate in real-time based on fully paid bookings
+    const activeRate = payment ? payment.paidRate : generalRate;
+    const commissionAmount = payment ? payment.amount : (fullyPaidBookingsCount * activeRate);
+
+    return {
+      ...agent,
+      bookings,
+      totalBookings,
+      fullyPaidBookingsCount,
+      totalRebookings,
+      commissionAmount,
+      commissionRate: activeRate,
+      paymentStatus: payment ? "PAID" : "UNPAID",
+      paymentDetails: payment ? {
+        paidAt: payment.paidAt,
+        paidById: payment.paidById,
+        paidRate: payment.paidRate,
+        amount: payment.amount,
+        remarks: payment.remarks,
+      } : null,
+    };
+  });
 
   // Server Action to mark commission as Paid
   async function markAsPaidAction(formData) {

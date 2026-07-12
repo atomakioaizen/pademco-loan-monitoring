@@ -26,16 +26,6 @@ export default async function EmployeesPage({ searchParams }) {
   const successMsg = resolvedSearchParams.success || null;
   const errorMsg = resolvedSearchParams.error || null;
 
-  let viewEmployee = null;
-  if (viewId) {
-    viewEmployee = await db.employee.findUnique({
-      where: { id: viewId },
-      include: { office: true, user: true },
-    });
-  }
-
-  const offices = await db.office.findMany({ orderBy: { name: "asc" } });
-
   // Build filter conditions
   const searchWhere = search
     ? {
@@ -49,25 +39,36 @@ export default async function EmployeesPage({ searchParams }) {
 
   const officeWhere = officeFilter ? { officeId: officeFilter } : {};
 
-  // Active employees
-  const activeEmployees = await db.employee.findMany({
-    where: { AND: [{ status: "ACTIVE" }, searchWhere, officeWhere] },
-    include: { office: true, _count: { select: { bookings: true } } },
-    orderBy: { fullName: "asc" },
-  });
-
-  // Inactive/archived employees
-  const inactiveEmployees = await db.employee.findMany({
-    where: { AND: [{ status: "INACTIVE" }, searchWhere, officeWhere] },
-    include: { office: true, _count: { select: { bookings: true } } },
-    orderBy: { fullName: "asc" },
-  });
-
-  // Outstanding flight counts
-  const outstandingBookings = await db.booking.findMany({
-    where: { loan: { status: { not: "FULLY_PAID" } } },
-    select: { employeeId: true, flightCount: true },
-  });
+  // Fetch all required data in parallel
+  const [
+    viewEmployee,
+    offices,
+    activeEmployees,
+    inactiveEmployees,
+    outstandingBookings
+  ] = await Promise.all([
+    viewId
+      ? db.employee.findUnique({
+          where: { id: viewId },
+          include: { office: true, user: true },
+        })
+      : Promise.resolve(null),
+    db.office.findMany({ orderBy: { name: "asc" } }),
+    db.employee.findMany({
+      where: { AND: [{ status: "ACTIVE" }, searchWhere, officeWhere] },
+      include: { office: true, _count: { select: { bookings: true } } },
+      orderBy: { fullName: "asc" },
+    }),
+    db.employee.findMany({
+      where: { AND: [{ status: "INACTIVE" }, searchWhere, officeWhere] },
+      include: { office: true, _count: { select: { bookings: true } } },
+      orderBy: { fullName: "asc" },
+    }),
+    db.booking.findMany({
+      where: { loan: { status: { not: "FULLY_PAID" } } },
+      select: { employeeId: true, flightCount: true },
+    })
+  ]);
   const flightCountMap = outstandingBookings.reduce((acc, curr) => {
     acc[curr.employeeId] = (acc[curr.employeeId] || 0) + curr.flightCount;
     return acc;

@@ -226,46 +226,48 @@ export default async function DashboardPage({ searchParams }) {
 
   // Render AdminDashboardClient for ADMIN, CASHIER, or AGENT roles (consists strictly of clickable stat cards)
   if (session.role === "ADMIN" || session.role === "CASHIER" || session.role === "AGENT") {
-    const allLoans = await db.loan.findMany({
-      include: {
-        booking: {
-          include: {
-            employee: { include: { office: true } },
-            airline: true,
-            bookedBy: true,
+    const [allLoans, allPayments, pendingUsers] = await Promise.all([
+      db.loan.findMany({
+        include: {
+          booking: {
+            include: {
+              employee: { include: { office: true } },
+              airline: true,
+              bookedBy: true,
+            },
           },
+          payments: { include: { cashier: true } },
         },
-        payments: { include: { cashier: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    const allPayments = await db.payment.findMany({
-      include: {
-        cashier: true,
-        loan: {
-          include: {
-            booking: {
-              include: {
-                employee: { include: { office: true } },
-                airline: true,
+        orderBy: { createdAt: "desc" },
+      }),
+      db.payment.findMany({
+        include: {
+          cashier: true,
+          loan: {
+            include: {
+              booking: {
+                include: {
+                  employee: { include: { office: true } },
+                  airline: true,
+                },
               },
             },
           },
         },
-      },
-      orderBy: { paymentDate: "desc" },
-    });
-
-    const pendingUsers = session.role === "ADMIN" ? await db.user.findMany({
-      where: { status: "PENDING" },
-      include: {
-        employee: {
-          include: { office: true }
-        }
-      },
-      orderBy: { createdAt: "desc" }
-    }) : [];
+        orderBy: { paymentDate: "desc" },
+      }),
+      session.role === "ADMIN"
+        ? db.user.findMany({
+            where: { status: "PENDING" },
+            include: {
+              employee: {
+                include: { office: true },
+              },
+            },
+            orderBy: { createdAt: "desc" },
+          })
+        : Promise.resolve([]),
+    ]);
 
     return (
       <AppLayout user={session}>

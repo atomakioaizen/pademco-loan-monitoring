@@ -26,10 +26,6 @@ export default async function ReportsPage({ searchParams }) {
   const fromDateStr = resolvedSearchParams.from || "";
   const toDateStr = resolvedSearchParams.to || "";
 
-  // Load baseline filter options (Offices & Employees)
-  const offices = await db.office.findMany({ orderBy: { name: "asc" } });
-  const allEmployees = await db.employee.findMany({ orderBy: { fullName: "asc" } });
-
   // Formulate date range where applicable
   const dateFilter = {};
   if (fromDateStr) dateFilter.gte = new Date(fromDateStr);
@@ -38,13 +34,6 @@ export default async function ReportsPage({ searchParams }) {
     end.setHours(23, 59, 59, 999);
     dateFilter.lte = end;
   }
-
-  // --- Fetch Report Data based on Active Tab ---
-  let reportData = [];
-  let exportData = [];
-  let headersMap = {};
-  let ledgerEmployee = null;
-  let ledgerSummary = {};
 
   // Common relational queries helper
   const commonWhereLoan = {
@@ -56,8 +45,20 @@ export default async function ReportsPage({ searchParams }) {
     ],
   };
 
+  // Define promises dynamically to fire in parallel
+  let outstandingPromise = Promise.resolve([]);
+  let fullyPaidPromise = Promise.resolve([]);
+  let overduePromise = Promise.resolve([]);
+  let collectionsPromise = Promise.resolve([]);
+  let profitPromise = Promise.resolve([]);
+  let agingPromise = Promise.resolve([]);
+  let inactiveBookingsPromise = Promise.resolve([]);
+  let inactiveEmployeesPromise = Promise.resolve([]);
+  let ledgerEmployeePromise = Promise.resolve(null);
+  let ledgerBookingsPromise = Promise.resolve([]);
+
   if (reportType === "outstanding") {
-    const loans = await db.loan.findMany({
+    outstandingPromise = db.loan.findMany({
       where: {
         remainingBalance: { gt: 0 },
         ...commonWhereLoan,
@@ -67,6 +68,151 @@ export default async function ReportsPage({ searchParams }) {
       },
       orderBy: { dueDate: "asc" },
     });
+  } else if (reportType === "fullypaid") {
+    fullyPaidPromise = db.loan.findMany({
+      where: {
+        status: "FULLY_PAID",
+        ...commonWhereLoan,
+      },
+      include: {
+        booking: { include: { employee: { include: { office: true } }, airline: true } },
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+  } else if (reportType === "overdue") {
+    overduePromise = db.loan.findMany({
+      where: {
+        status: "OVERDUE",
+        ...commonWhereLoan,
+      },
+      include: {
+        booking: { include: { employee: { include: { office: true } }, airline: true } },
+      },
+      orderBy: { dueDate: "asc" },
+    });
+  } else if (reportType === "collections") {
+    collectionsPromise = db.payment.findMany({
+      where: {
+        loan: { booking: { isArchived: false } },
+        AND: [
+          officeFilter ? { loan: { booking: { employee: { officeId: officeFilter } } } } : {},
+          employeeFilter ? { loan: { booking: { employeeId: employeeFilter } } } : {},
+          fromDateStr || toDateStr ? { paymentDate: dateFilter } : {},
+        ],
+      },
+      include: {
+        loan: {
+          include: {
+            booking: { include: { employee: { include: { office: true } } } },
+          },
+        },
+        cashier: true,
+      },
+      orderBy: { paymentDate: "desc" },
+    });
+  } else if (reportType === "profit") {
+    profitPromise = db.loan.findMany({
+      where: commonWhereLoan,
+      include: {
+        booking: { include: { employee: { include: { office: true } } } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  } else if (reportType === "aging") {
+    agingPromise = db.loan.findMany({
+      where: {
+        remainingBalance: { gt: 0 },
+        booking: { isArchived: false },
+        AND: [
+          officeFilter ? { booking: { employee: { officeId: officeFilter } } } : {},
+          employeeFilter ? { booking: { employeeId: employeeFilter } } : {},
+        ],
+      },
+      include: {
+        booking: { include: { employee: { include: { office: true } } } },
+      },
+    });
+  } else if (reportType === "inactive") {
+    inactiveBookingsPromise = db.booking.findMany({
+      where: {
+        loan: {
+          status: { not: "FULLY_PAID" }
+        }
+      },
+      select: { employeeId: true, flightCount: true }
+    });
+    inactiveEmployeesPromise = db.employee.findMany({
+      where: {
+        AND: [
+          officeFilter ? { officeId: officeFilter } : {},
+          employeeFilter ? { id: employeeFilter } : {},
+        ],
+      },
+      include: {
+        office: true,
+      },
+      orderBy: { fullName: "asc" },
+    });
+  } else if (reportType === "ledger" && employeeFilter) {
+    ledgerEmployeePromise = db.employee.findUnique({
+      where: { id: employeeFilter },
+      include: { office: true },
+    });
+    ledgerBookingsPromise = db.booking.findMany({
+      where: { employeeId: employeeFilter },
+      include: {
+        airline: true,
+        loan: {
+          include: {
+            payments: {
+              include: { cashier: true },
+              orderBy: { paymentDate: "asc" },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+  }
+
+  // Load all required data in parallel
+  const [
+    offices,
+    allEmployees,
+    outstandingLoans,
+    fullyPaidLoans,
+    overdueLoans,
+    collectionsPayments,
+    profitLoans,
+    agingLoans,
+    inactiveBookings,
+    inactiveEmployees,
+    ledgerEmployeeRaw,
+    ledgerBookings
+  ] = await Promise.all([
+    db.office.findMany({ orderBy: { name: "asc" } }),
+    db.employee.findMany({ orderBy: { fullName: "asc" } }),
+    outstandingPromise,
+    fullyPaidPromise,
+    overduePromise,
+    collectionsPromise,
+    profitPromise,
+    agingPromise,
+    inactiveBookingsPromise,
+    inactiveEmployeesPromise,
+    ledgerEmployeePromise,
+    ledgerBookingsPromise
+  ]);
+
+  // --- Fetch Report Data based on Active Tab ---
+  let reportData = [];
+  let exportData = [];
+  let headersMap = {};
+  let ledgerEmployee = null;
+  let ledgerSummary = {};
+
+  if (reportType === "outstanding") {
+    const loans = outstandingLoans;
 
     reportData = loans;
     exportData = loans.map((l) => ({
@@ -99,16 +245,7 @@ export default async function ReportsPage({ searchParams }) {
       Status: "Status",
     };
   } else if (reportType === "fullypaid") {
-    const loans = await db.loan.findMany({
-      where: {
-        status: "FULLY_PAID",
-        ...commonWhereLoan,
-      },
-      include: {
-        booking: { include: { employee: { include: { office: true } }, airline: true } },
-      },
-      orderBy: { updatedAt: "desc" },
-    });
+    const loans = fullyPaidLoans;
 
     reportData = loans;
     exportData = loans.map((l) => ({
@@ -133,16 +270,7 @@ export default async function ReportsPage({ searchParams }) {
       "Completion Date": "Completed Date",
     };
   } else if (reportType === "overdue") {
-    const loans = await db.loan.findMany({
-      where: {
-        status: "OVERDUE",
-        ...commonWhereLoan,
-      },
-      include: {
-        booking: { include: { employee: { include: { office: true } }, airline: true } },
-      },
-      orderBy: { dueDate: "asc" },
-    });
+    const loans = overdueLoans;
 
     reportData = loans;
     exportData = loans.map((l) => {
@@ -172,25 +300,7 @@ export default async function ReportsPage({ searchParams }) {
       "Days Overdue": "Days Overdue",
     };
   } else if (reportType === "collections") {
-    const payments = await db.payment.findMany({
-      where: {
-        loan: { booking: { isArchived: false } },
-        AND: [
-          officeFilter ? { loan: { booking: { employee: { officeId: officeFilter } } } } : {},
-          employeeFilter ? { loan: { booking: { employeeId: employeeFilter } } } : {},
-          fromDateStr || toDateStr ? { paymentDate: dateFilter } : {},
-        ],
-      },
-      include: {
-        loan: {
-          include: {
-            booking: { include: { employee: { include: { office: true } } } },
-          },
-        },
-        cashier: true,
-      },
-      orderBy: { paymentDate: "desc" },
-    });
+    const payments = collectionsPayments;
 
     reportData = payments;
     exportData = payments.map((p) => ({
@@ -215,15 +325,7 @@ export default async function ReportsPage({ searchParams }) {
       Cashier: "Cashier",
     };
   } else if (reportType === "profit") {
-    const loans = await db.loan.findMany({
-      where: {
-        ...commonWhereLoan,
-      },
-      include: {
-        booking: { include: { employee: { include: { office: true } } } },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    const loans = profitLoans;
 
     reportData = loans;
     exportData = loans.map((l) => ({
@@ -246,20 +348,7 @@ export default async function ReportsPage({ searchParams }) {
       "Total Advanced + Profit": "Total Loan",
     };
   } else if (reportType === "aging") {
-    // Fetch active/overdue loans
-    const loans = await db.loan.findMany({
-      where: {
-        remainingBalance: { gt: 0 },
-        booking: { isArchived: false },
-        AND: [
-          officeFilter ? { booking: { employee: { officeId: officeFilter } } } : {},
-          employeeFilter ? { booking: { employeeId: employeeFilter } } : {},
-        ],
-      },
-      include: {
-        booking: { include: { employee: { include: { office: true } } } },
-      },
-    });
+    const loans = agingLoans;
 
     // Bucket outstanding amounts by overdue age
     const now = Date.now();
@@ -321,36 +410,14 @@ export default async function ReportsPage({ searchParams }) {
       "Over 90 Days Overdue": "Over 90 Days",
     };
   } else if (reportType === "inactive") {
-    // 1. Fetch active flights map to check max loan limit reached (4 active flights)
-    const activeBookings = await db.booking.findMany({
-      where: {
-        loan: {
-          status: { not: "FULLY_PAID" }
-        }
-      },
-      select: { employeeId: true, flightCount: true }
-    });
-
-    const flightCountMap = activeBookings.reduce((acc, curr) => {
+    const flightCountMap = inactiveBookings.reduce((acc, curr) => {
       acc[curr.employeeId] = (acc[curr.employeeId] || 0) + curr.flightCount;
       return acc;
     }, {});
 
-    // 2. Fetch employees matching the filters
-    const employees = await db.employee.findMany({
-      where: {
-        AND: [
-          officeFilter ? { officeId: officeFilter } : {},
-          employeeFilter ? { id: employeeFilter } : {},
-        ],
-      },
-      include: {
-        office: true,
-      },
-      orderBy: { fullName: "asc" },
-    });
+    const employees = inactiveEmployees;
 
-    // 3. Filter employees who are either set as INACTIVE by admin or reached limit (>= 4 active flights)
+    // Filter employees who are either set as INACTIVE by admin or reached limit (>= 4 active flights)
     const filteredEmps = employees.filter((emp) => {
       const outstandingFlights = flightCountMap[emp.id] || 0;
       const isLimitReached = outstandingFlights >= 4;
@@ -392,29 +459,10 @@ export default async function ReportsPage({ searchParams }) {
       "Deactivation Reason": "Deactivation Reason",
     };
   } else if (reportType === "ledger" && employeeFilter) {
-    // 1. Load Employee Details
-    ledgerEmployee = await db.employee.findUnique({
-      where: { id: employeeFilter },
-      include: { office: true },
-    });
+    ledgerEmployee = ledgerEmployeeRaw;
 
     if (ledgerEmployee) {
-      // 2. Fetch Employee Bookings & Loans
-      const bookings = await db.booking.findMany({
-        where: { employeeId: employeeFilter },
-        include: {
-          airline: true,
-          loan: {
-            include: {
-              payments: {
-                include: { cashier: true },
-                orderBy: { paymentDate: "asc" },
-              },
-            },
-          },
-        },
-        orderBy: { createdAt: "asc" },
-      });
+      const bookings = ledgerBookings;
 
       // Assemble Ledger Details
       let totalAdvanced = 0;

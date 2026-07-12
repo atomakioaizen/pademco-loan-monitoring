@@ -27,44 +27,45 @@ export default async function SettingsPage({ searchParams }) {
   const successMsg = resolvedParams?.success || null;
   const errorMsg = resolvedParams?.error || null;
 
-  // Fetch all system settings
-  const settingsList = await db.systemSetting.findMany();
+  // Fetch all required settings data in parallel
+  const [
+    settingsList,
+    users,
+    employeesWithoutAccount,
+    editUser,
+    archivedBookings
+  ] = await Promise.all([
+    db.systemSetting.findMany(),
+    db.user.findMany({
+      include: { employee: true },
+      orderBy: { username: "asc" },
+    }),
+    db.employee.findMany({
+      where: {
+        user: null,
+        status: "ACTIVE",
+      },
+      orderBy: { fullName: "asc" },
+    }),
+    editUserId
+      ? db.user.findFirst({
+          where: { id: editUserId, role: { in: ["CASHIER", "AGENT"] } },
+        })
+      : Promise.resolve(null),
+    db.booking.findMany({
+      where: { isArchived: true },
+      include: {
+        employee: true,
+        airline: true
+      },
+      orderBy: { updatedAt: "desc" }
+    })
+  ]);
+
   const settings = settingsList.reduce((acc, curr) => {
     acc[curr.key] = curr.value;
     return acc;
   }, {});
-
-  // Fetch all users with their mapped employee records
-  const users = await db.user.findMany({
-    include: { employee: true },
-    orderBy: { username: "asc" },
-  });
-
-  // Fetch all active employees who do NOT have a portal user account linked yet
-  const employeesWithoutAccount = await db.employee.findMany({
-    where: {
-      user: null,
-      status: "ACTIVE",
-    },
-    orderBy: { fullName: "asc" },
-  });
-
-  // Fetch the user being edited (only CASHIER/AGENT allowed)
-  const editUser = editUserId
-    ? await db.user.findFirst({
-        where: { id: editUserId, role: { in: ["CASHIER", "AGENT"] } },
-      })
-    : null;
-
-  // Fetch all archived bookings
-  const archivedBookings = await db.booking.findMany({
-    where: { isArchived: true },
-    include: {
-      employee: true,
-      airline: true
-    },
-    orderBy: { updatedAt: "desc" }
-  });
 
   // Server Action to update settings
   async function saveSettings(formData) {
