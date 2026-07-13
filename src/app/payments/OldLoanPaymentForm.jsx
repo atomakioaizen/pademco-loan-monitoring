@@ -1,6 +1,119 @@
-"use client";
+import { useState, useEffect, useRef } from "react";
 
-import { useState } from "react";
+function OldLoanCombobox({ oldLoans, value, onChange, placeholder = "Select Borrower" }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const containerRef = useRef(null);
+
+  const selectedLoan = oldLoans.find((ol) => ol.id === value);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSearch("");
+    }
+  }, [isOpen]);
+
+  const filtered = oldLoans.filter((ol) => {
+    const term = search.toLowerCase();
+    return (
+      ol.employeeName.toLowerCase().includes(term) ||
+      ol.employeeOffice.toLowerCase().includes(term)
+    );
+  });
+
+  return (
+    <div ref={containerRef} className="relative w-full">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between rounded-xl border border-slate-350 bg-white px-4 py-2.5 text-left text-slate-900 text-sm font-medium shadow-sm hover:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200 transition-all cursor-pointer select-none"
+      >
+        {selectedLoan ? (
+          <span className="truncate">
+            {selectedLoan.employeeName} 
+            <span className="text-[10px] text-slate-400 font-semibold ml-2 font-mono">
+              ({selectedLoan.totalOldLoans} old loan(s) | {selectedLoan.employeeOffice})
+            </span>
+          </span>
+        ) : (
+          <span className="text-slate-400">{placeholder}</span>
+        )}
+        <svg
+          className={`h-4 w-4 text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl z-50 animate-fadeIn max-h-80 flex flex-col overflow-hidden">
+          <div className="p-2 border-b border-slate-100 bg-slate-50/50">
+            <div className="relative">
+              <input
+                type="text"
+                autoFocus
+                placeholder="Search borrower by name..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full rounded-lg border border-slate-250 bg-white pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-200 transition-all"
+              />
+              <span className="absolute left-2.5 top-2 text-slate-400">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </span>
+            </div>
+          </div>
+
+          <div className="overflow-y-auto flex-1 divide-y divide-slate-50 max-h-56">
+            {filtered.length > 0 ? (
+              filtered.map((ol) => {
+                const isSelected = ol.id === value;
+                return (
+                  <button
+                    key={ol.id}
+                    type="button"
+                    onClick={() => {
+                      onChange(ol.id);
+                      setIsOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-xs hover:bg-slate-50 transition-all flex flex-col gap-0.5 ${
+                      isSelected ? "bg-amber-50 border-l-4 border-amber-500 pl-3" : ""
+                    }`}
+                  >
+                    <span className="font-bold text-slate-800">
+                      {ol.employeeName}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      {ol.totalOldLoans} old loan(s) • {ol.employeeOffice}
+                    </span>
+                  </button>
+                );
+              })
+            ) : (
+              <div className="px-4 py-6 text-xs text-slate-400 text-center italic">
+                No borrowers found matching "{search}"
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function OldLoanPaymentForm({ oldLoans, action, onSuccess }) {
   const [error, setError] = useState(null);
@@ -78,22 +191,15 @@ export default function OldLoanPaymentForm({ oldLoans, action, onSuccess }) {
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Select Borrower (Old Loan)
             </label>
-            <select
-              required
+            <OldLoanCombobox
+              oldLoans={oldLoans}
               value={selectedOldLoanId}
-              onChange={(e) => {
-                setSelectedOldLoanId(e.target.value);
+              onChange={(val) => {
+                setSelectedOldLoanId(val);
                 setAmount("");
               }}
-              className="block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200 text-slate-900 text-sm transition-all bg-white"
-            >
-              <option value="">-- Select a borrower with old loan --</option>
-              {oldLoans.map((ol) => (
-                <option key={ol.id} value={ol.id}>
-                  {ol.employeeName} — {ol.totalOldLoans} old loan(s) | {ol.employeeOffice}
-                </option>
-              ))}
-            </select>
+              placeholder="Search or select borrower name..."
+            />
           </div>
 
           {/* Loan Summary Card */}

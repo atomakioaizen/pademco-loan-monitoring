@@ -85,7 +85,10 @@ export default async function DashboardPage({ searchParams }) {
       }),
       db.oldLoan.findUnique({
         where: { employeeId },
-        include: { encodedBy: { select: { name: true, username: true } } },
+        include: {
+          encodedBy: { select: { name: true, username: true } },
+          payments: true,
+        },
       }),
       db.systemSetting.findMany(),
     ]);
@@ -141,6 +144,8 @@ export default async function DashboardPage({ searchParams }) {
           hasOverdue={hasOverdue}
           oldLoan={oldLoan ? {
             totalOldLoans: oldLoan.totalOldLoans,
+            estimatedAmount: oldLoan.estimatedAmount,
+            totalPaid: oldLoan.payments.reduce((sum, p) => sum + p.amount, 0),
             dateSince: oldLoan.dateSince,
             remarks: oldLoan.remarks,
             encodedBy: oldLoan.encodedBy?.name || oldLoan.encodedBy?.username || "Bookkeeper",

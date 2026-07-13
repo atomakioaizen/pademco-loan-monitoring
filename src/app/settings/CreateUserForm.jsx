@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 
-export default function CreateUserForm({ employees, action }) {
-  const [role, setRole] = useState("AGENT");
+export default function CreateUserForm({ employees, action, currentUserRole }) {
+  const [role, setRole] = useState(currentUserRole === "BOOKKEEPER" ? "VIEWER" : "AGENT");
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
@@ -20,7 +20,7 @@ export default function CreateUserForm({ employees, action }) {
     } else {
       setSuccess("User account created successfully!");
       e.target.reset();
-      setRole("VIEWER");
+      setRole(currentUserRole === "BOOKKEEPER" ? "VIEWER" : "AGENT");
     }
   };
 
@@ -91,20 +91,46 @@ export default function CreateUserForm({ employees, action }) {
           <label htmlFor="user_role" className="block text-sm font-semibold text-slate-700">
             Access Control Role
           </label>
-          <select
-            name="role"
-            id="user_role"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="mt-1 block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-sm transition-all bg-white"
-          >
-            <option value="AGENT">AGENT (Booking Agent / Ticketing)</option>
-            <option value="CASHIER">CASHIER (Payments & Receipts)</option>
-            <option value="BOOKKEEPER">BOOKKEEPER (Old Loans Encoder & Approver)</option>
-          </select>
+          {currentUserRole === "BOOKKEEPER" ? (
+            <div className="mt-1 block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-slate-700 text-sm font-bold">
+              LOANER (Viewer / Borrower Account Only)
+              <input type="hidden" name="role" value="VIEWER" />
+            </div>
+          ) : (
+            <select
+              name="role"
+              id="user_role"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="mt-1 block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-sm transition-all bg-white"
+            >
+              <option value="AGENT">AGENT (Booking Agent / Ticketing)</option>
+              <option value="CASHIER">CASHIER (Payments & Receipts)</option>
+              <option value="BOOKKEEPER">BOOKKEEPER (Old Loans Encoder & Approver)</option>
+            </select>
+          )}
         </div>
 
-
+        {(role === "VIEWER" || currentUserRole === "BOOKKEEPER") && (
+          <div>
+            <label htmlFor="user_employeeId" className="block text-sm font-semibold text-slate-700">
+              Link to DENR Employee Profile
+            </label>
+            <select
+              name="employeeId"
+              id="user_employeeId"
+              required
+              className="mt-1 block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-sm transition-all bg-white"
+            >
+              <option value="">-- Select Employee Profile --</option>
+              {employees.map((emp) => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.fullName} ({emp.employeeId})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <button
           type="submit"

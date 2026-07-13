@@ -176,8 +176,16 @@ export default async function SettingsPage({ searchParams }) {
       return { error: "Please fill in all user profile fields." };
     }
 
-    if (role === "ADMIN" || role === "VIEWER") {
-      return { error: "Security rule: Admin and Viewer accounts cannot be created in this panel." };
+    if (session.role === "BOOKKEEPER" && role !== "VIEWER") {
+      return { error: "Security rule: Bookkeepers can only create Loaner (Viewer) accounts." };
+    }
+
+    if (role === "ADMIN") {
+      return { error: "Security rule: Admin accounts cannot be created in this panel." };
+    }
+
+    if (role === "VIEWER" && !employeeId) {
+      return { error: "Security rule: Viewer accounts must be linked to an employee profile." };
     }
 
     try {
@@ -201,6 +209,21 @@ export default async function SettingsPage({ searchParams }) {
         const bookkeeperCount = await db.user.count({ where: { role: "BOOKKEEPER" } });
         if (bookkeeperCount >= 3) {
           return { error: "System limit reached: Maximum of 3 Bookkeeper accounts is allowed." };
+        }
+      } else if (role === "VIEWER") {
+        const viewerCount = await db.user.count({ where: { role: "VIEWER" } });
+        if (viewerCount >= 500) {
+          return { error: "System limit reached: Maximum of 500 Loaner accounts is allowed." };
+        }
+        const targetEmployee = await db.employee.findUnique({
+          where: { id: employeeId },
+          include: { user: true },
+        });
+        if (!targetEmployee) {
+          return { error: "Linked employee profile not found." };
+        }
+        if (targetEmployee.user) {
+          return { error: `Employee "${targetEmployee.fullName}" already has a portal user account.` };
         }
       }
 
@@ -226,8 +249,6 @@ export default async function SettingsPage({ searchParams }) {
         return { error: `Full name "${name}" is already registered.` };
       }
 
-      // employeeId linking removed for VIEWER (handled in Employee tab)
-
       const passwordHash = hashPassword(password);
 
       await db.user.create({
@@ -236,7 +257,8 @@ export default async function SettingsPage({ searchParams }) {
           username,
           passwordHash,
           role,
-          employeeId: null,
+          employeeId: role === "VIEWER" ? employeeId : null,
+          status: "APPROVED",
           commissionRate,
         },
       });
@@ -443,6 +465,7 @@ export default async function SettingsPage({ searchParams }) {
             <CreateUserForm
               employees={employeesWithoutAccount}
               action={createUserAction}
+              currentUserRole={session.role}
             />
 
             {/* Section 2b: Booking Agent Commission settings */}

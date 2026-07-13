@@ -214,25 +214,43 @@ export default function ViewerDashboardClient({
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <div className="bg-white/80 border border-amber-200 rounded-xl p-3">
                   <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Total Old Loans</p>
-                  <p className="text-2xl font-black text-amber-800 mt-0.5">{oldLoan.totalOldLoans}</p>
-                  <p className="text-[10px] text-amber-600 font-semibold">loan account{oldLoan.totalOldLoans > 1 ? "s" : ""} unpaid</p>
+                  <p className="text-xl font-black text-amber-800 mt-0.5">{oldLoan.totalOldLoans}</p>
+                  <p className="text-[10px] text-amber-600 font-semibold">unpaid account{oldLoan.totalOldLoans > 1 ? "s" : ""}</p>
                 </div>
                 <div className="bg-white/80 border border-amber-200 rounded-xl p-3">
-                  <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Loan Exists Since</p>
-                  <p className="text-base font-black text-amber-800 mt-0.5">
-                    {new Date(oldLoan.dateSince).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                  <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Estimated Total Amount</p>
+                  <p className="text-xl font-black text-amber-800 mt-0.5 font-mono">
+                    {oldLoan.estimatedAmount != null ? formatCurrency(oldLoan.estimatedAmount) : "—"}
                   </p>
-                  <p className="text-[10px] text-amber-600 font-semibold">
-                    {Math.floor((new Date() - new Date(oldLoan.dateSince)) / (1000 * 60 * 60 * 24 * 30))} months ago
-                  </p>
+                  <p className="text-[10px] text-amber-600 font-semibold">original estimated amount</p>
                 </div>
                 <div className="bg-white/80 border border-amber-200 rounded-xl p-3">
-                  <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Encoded By</p>
-                  <p className="text-sm font-black text-amber-800 mt-0.5 truncate">{oldLoan.encodedBy}</p>
-                  <p className="text-[10px] text-amber-600 font-semibold">PADEMCO Bookkeeper</p>
+                  <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Total Paid So Far</p>
+                  <p className="text-xl font-black text-emerald-700 mt-0.5 font-mono">
+                    {formatCurrency(oldLoan.totalPaid)}
+                  </p>
+                  <p className="text-[10px] text-emerald-600 font-semibold">recorded payments</p>
+                </div>
+                <div className="bg-white/80 border border-amber-200 rounded-xl p-3">
+                  <p className="text-[9px] font-black text-rose-600 uppercase tracking-widest">Remaining Balance</p>
+                  <p className="text-xl font-black text-rose-700 mt-0.5 font-mono">
+                    {oldLoan.estimatedAmount != null ? formatCurrency(Math.max(0, oldLoan.estimatedAmount - oldLoan.totalPaid)) : "—"}
+                  </p>
+                  <p className="text-[10px] text-rose-600 font-semibold">estimated balance due</p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-amber-700 font-medium bg-white/40 p-3 rounded-xl border border-amber-100">
+                <div>
+                  <span className="text-amber-500 font-bold uppercase tracking-wider text-[9px] block">Loan Exists Since</span>
+                  <span>{new Date(oldLoan.dateSince).toLocaleDateString("en-US", { month: "long", year: "numeric" })} ({Math.floor((new Date() - new Date(oldLoan.dateSince)) / (1000 * 60 * 60 * 24 * 30))} months ago)</span>
+                </div>
+                <div>
+                  <span className="text-amber-500 font-bold uppercase tracking-wider text-[9px] block">Encoded By</span>
+                  <span>{oldLoan.encodedBy} (PADEMCO Bookkeeper)</span>
                 </div>
               </div>
 
