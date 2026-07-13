@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { getSession, hashPassword } from "@/lib/auth";
 import { logAction } from "@/lib/audit";
 import AppLayout from "@/components/AppLayout";
+import UseDefaultPasswordButton from "@/components/UseDefaultPasswordButton";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -10,7 +11,7 @@ import DeleteButton from "@/components/DeleteButton";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Employee Management - PADEMCO",
+  title: "Loaner Management - PADEMCO",
 };
 
 export default async function EmployeesPage({ searchParams }) {
@@ -349,9 +350,9 @@ export default async function EmployeesPage({ searchParams }) {
   // ─── HELPERS ──────────────────────────────────────────────────────────────
 
   const tabs = [
-    { key: "active", label: "Active Employees", count: activeEmployees.length, color: "emerald" },
+    { key: "active", label: "Active Loaners", count: activeEmployees.length, color: "emerald" },
     { key: "inactive", label: "Archived / Inactive", count: inactiveEmployees.length, color: "rose" },
-    { key: "create", label: "Register New Employee", count: null, color: "blue" },
+    { key: "create", label: "Register New Loaner", count: null, color: "blue" },
   ];
 
   const displayedEmployees = tab === "inactive" ? inactiveEmployees : activeEmployees;
@@ -362,9 +363,9 @@ export default async function EmployeesPage({ searchParams }) {
 
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-black text-primary">Employee Management</h1>
+          <h1 className="text-2xl font-black text-primary">Loaner Management</h1>
           <p className="text-sm text-slate-500">
-            Register, search, and manage DENR employees. Archived employees retain their full loan history.
+            Register, search, and manage DENR loaners. Archived loaners retain their full loan history.
           </p>
         </div>
 
@@ -422,9 +423,9 @@ export default async function EmployeesPage({ searchParams }) {
         {tab === "create" && (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 w-full">
             <div className="mb-6">
-              <h2 className="text-xl font-black text-slate-800">Register New Employee</h2>
+              <h2 className="text-xl font-black text-slate-800">Register New Loaner</h2>
               <p className="text-xs text-slate-400 mt-1">
-                Enter credentials to add a new employee profile. This profile will be available in the flight booking selection.
+                Enter credentials to add a new loaner profile. This loaner will be available for flight bookings and loan management.
               </p>
             </div>
 
@@ -438,7 +439,7 @@ export default async function EmployeesPage({ searchParams }) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   <div>
                     <label htmlFor="employeeId" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                      Employee ID <span className="font-normal text-slate-400">(Optional)</span>
+                      Loaner ID <span className="font-normal text-slate-400">(Optional)</span>
                     </label>
                     <input type="text" name="employeeId" id="employeeId" autoComplete="off"
                       placeholder="e.g., DENR-2026-0041 (leave blank to auto-generate)"
@@ -545,7 +546,7 @@ export default async function EmployeesPage({ searchParams }) {
                     3. Portal Login Credentials
                   </span>
                   <p className="text-[10px] text-slate-400 leading-relaxed">
-                    Enter a username and password to generate a VIEWER account for this employee.
+                    Enter a username and password to generate a VIEWER (Loaner) account for this profile.
                   </p>
                 </div>
 
@@ -557,16 +558,7 @@ export default async function EmployeesPage({ searchParams }) {
                       You can use <code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono text-amber-900">employee123</code> as the default password for new loaner accounts.
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const pwEl = document.getElementById('new-emp-password');
-                      if (pwEl) { pwEl.value = 'employee123'; pwEl.type = 'text'; }
-                    }}
-                    className="ml-3 shrink-0 bg-amber-500 hover:bg-amber-600 text-white text-xs font-black px-3 py-2 rounded-xl transition-all cursor-pointer"
-                  >
-                    Use Default
-                  </button>
+                  <UseDefaultPasswordButton targetId="new-emp-password" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -588,7 +580,7 @@ export default async function EmployeesPage({ searchParams }) {
               <div className="pt-2">
                 <button type="submit"
                   className="w-full bg-primary hover:bg-primary-hover text-white py-3.5 px-6 rounded-xl text-sm font-black shadow-md transition-all hover:shadow-lg cursor-pointer">
-                  Save &amp; Register Employee
+                  Save &amp; Register Loaner
                 </button>
               </div>
             </form>
@@ -637,12 +629,12 @@ export default async function EmployeesPage({ searchParams }) {
               <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
                 <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
                   {tab === "active"
-                    ? `Active Employees (${activeEmployees.length})`
-                    : `Archived / Inactive Employees (${inactiveEmployees.length})`}
+                    ? `Active Loaners (${activeEmployees.length})`
+                    : `Archived / Inactive Loaners (${inactiveEmployees.length})`}
                 </h2>
                 {tab === "inactive" && (
                   <span className="text-xs text-slate-400 font-medium">
-                    Employees here can be restored to Active status or permanently deleted.
+                    Loaners here can be restored to Active status or permanently deleted.
                   </span>
                 )}
               </div>
@@ -651,7 +643,7 @@ export default async function EmployeesPage({ searchParams }) {
                 <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
                   <thead className="bg-slate-50 text-slate-600 font-bold">
                     <tr>
-                      <th scope="col" className="px-6 py-3.5">Employee ID</th>
+                      <th scope="col" className="px-6 py-3.5">Loaner ID</th>
                       <th scope="col" className="px-6 py-3.5">Full Name</th>
                       <th scope="col" className="px-6 py-3.5">Office/Division</th>
                       <th scope="col" className="px-6 py-3.5">Position</th>
@@ -665,8 +657,8 @@ export default async function EmployeesPage({ searchParams }) {
                       <tr>
                         <td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-medium">
                           {tab === "inactive"
-                            ? "No archived employees found."
-                            : "No active employees found matching the filters."}
+                            ? "No archived loaners found."
+                            : "No active loaners found matching the filters."}
                         </td>
                       </tr>
                     ) : (
