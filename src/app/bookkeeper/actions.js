@@ -12,14 +12,13 @@ export async function encodeOldLoanAction(formData) {
   }
 
   const employeeId = formData.get("employeeId");
-  const totalOldLoans = parseInt(formData.get("totalOldLoans") || "0");
   const estimatedAmountRaw = formData.get("estimatedAmount");
   const estimatedAmount = estimatedAmountRaw ? parseFloat(estimatedAmountRaw) : null;
   const dateSinceStr = formData.get("dateSince");
   const remarks = formData.get("remarks")?.trim() || null;
 
-  if (!employeeId || totalOldLoans <= 0 || !dateSinceStr) {
-    return { error: "Please provide employee, total old loans count, and date." };
+  if (!employeeId || !estimatedAmount || estimatedAmount <= 0 || !dateSinceStr) {
+    return { error: "Please provide employee, total amount owed, and oldest loan date." };
   }
 
   const dateSince = new Date(dateSinceStr);
@@ -35,7 +34,7 @@ export async function encodeOldLoanAction(formData) {
     const oldLoan = await db.oldLoan.upsert({
       where: { employeeId },
       update: {
-        totalOldLoans,
+        totalOldLoans: 1,
         estimatedAmount,
         dateSince,
         remarks,
@@ -43,7 +42,7 @@ export async function encodeOldLoanAction(formData) {
       },
       create: {
         employeeId,
-        totalOldLoans,
+        totalOldLoans: 1,
         estimatedAmount,
         dateSince,
         remarks,
@@ -55,7 +54,7 @@ export async function encodeOldLoanAction(formData) {
       session.id,
       "CREATE",
       "LOAN",
-      `Encoded/updated old loan record for employee "${employee.fullName}" (${totalOldLoans} old loans since ${dateSinceStr}).`
+      `Encoded/updated old loan record for employee "${employee.fullName}" (Total owed: ₱${estimatedAmount?.toLocaleString()} since ${dateSinceStr}).`
     );
 
     revalidatePath("/bookkeeper");

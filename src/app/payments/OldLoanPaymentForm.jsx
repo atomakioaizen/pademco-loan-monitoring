@@ -40,9 +40,9 @@ function OldLoanCombobox({ oldLoans, value, onChange, placeholder = "Select Borr
       >
         {selectedLoan ? (
           <span className="truncate">
-            {selectedLoan.employeeName} 
+            {selectedLoan.employeeName}
             <span className="text-[10px] text-slate-400 font-semibold ml-2 font-mono">
-              ({selectedLoan.totalOldLoans} old loan(s) | {selectedLoan.employeeOffice})
+              {selectedLoan.employeeOffice}
             </span>
           </span>
         ) : (
@@ -98,7 +98,7 @@ function OldLoanCombobox({ oldLoans, value, onChange, placeholder = "Select Borr
                       {ol.employeeName}
                     </span>
                     <span className="text-[10px] text-slate-400 font-medium">
-                      {ol.totalOldLoans} old loan(s) • {ol.employeeOffice}
+                      {ol.employeeOffice}
                     </span>
                   </button>
                 );

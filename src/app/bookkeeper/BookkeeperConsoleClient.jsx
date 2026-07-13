@@ -15,7 +15,6 @@ export default function BookkeeperConsoleClient({
   
   // Encoding Form State
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
-  const [totalOldLoans, setTotalOldLoans] = useState("");
   const [estimatedAmount, setEstimatedAmount] = useState("");
   const [dateSince, setDateSince] = useState("");
   const [remarks, setRemarks] = useState("");
@@ -42,7 +41,6 @@ export default function BookkeeperConsoleClient({
 
     const formData = new FormData();
     formData.append("employeeId", selectedEmployee.id);
-    formData.append("totalOldLoans", totalOldLoans);
     formData.append("estimatedAmount", estimatedAmount);
     formData.append("dateSince", dateSince);
     formData.append("remarks", remarks);
@@ -53,7 +51,6 @@ export default function BookkeeperConsoleClient({
         setError(res.error);
       } else {
         setSuccess("Old loan record saved successfully!");
-        setTotalOldLoans("");
         setEstimatedAmount("");
         setDateSince("");
         setRemarks("");
@@ -172,42 +169,28 @@ export default function BookkeeperConsoleClient({
                 />
               </div>
 
-              {/* Total Old Loans */}
+              {/* Total Amount — mandatory */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Total Old Loans
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={totalOldLoans}
-                  onChange={(e) => setTotalOldLoans(e.target.value)}
-                  placeholder="e.g., 2"
-                  className="block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-sm transition-all"
-                />
-              </div>
-
-              {/* Estimated Total Amount (Optional) */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Estimated Total Amount (₱) <span className="text-slate-400 font-normal normal-case">(optional)</span>
+                  Total Amount Owed (₱) <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="number"
                   min="0"
                   step="0.01"
+                  required
                   value={estimatedAmount}
                   onChange={(e) => setEstimatedAmount(e.target.value)}
-                  placeholder="e.g., 15000.00"
+                  placeholder="e.g., 45000.00"
                   className="block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-sm transition-all font-mono"
                 />
               </div>
 
-              {/* Date Since */}
+              {/* Oldest Loan Date */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Date since old loan exists
+                  Oldest Loan Date <span className="text-rose-500">*</span>
+                  <span className="text-slate-400 font-normal normal-case ml-1">(date of oldest unpaid loan)</span>
                 </label>
                 <input
                   type="date"
@@ -261,9 +244,8 @@ export default function BookkeeperConsoleClient({
                   <thead className="bg-slate-50">
                     <tr>
                       <th className="px-4 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">Employee / Unit</th>
-                      <th className="px-4 py-3 text-center text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Loans</th>
-                      <th className="px-4 py-3 text-right text-[10px] font-black text-slate-400 uppercase tracking-wider">Est. Amount</th>
-                      <th className="px-4 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">Date Encoded Since</th>
+                      <th className="px-4 py-3 text-right text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Amount Owed</th>
+                      <th className="px-4 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">Oldest Loan Date</th>
                       <th className="px-4 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-wider">Remarks</th>
                       <th className="px-4 py-3 text-right text-[10px] font-black text-slate-400 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -275,13 +257,10 @@ export default function BookkeeperConsoleClient({
                           <div className="text-xs font-bold text-slate-800">{rec.employee.fullName}</div>
                           <div className="text-[10px] text-slate-400">ID: {rec.employee.employeeId} • {rec.employee.office.name}</div>
                         </td>
-                        <td className="px-4 py-3.5 whitespace-nowrap text-center text-xs font-black text-slate-800">
-                          {rec.totalOldLoans}
-                        </td>
                         <td className="px-4 py-3.5 whitespace-nowrap text-right text-xs font-bold text-slate-700 font-mono">
                           {rec.estimatedAmount != null
                             ? `₱${rec.estimatedAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}`
-                            : <span className="text-slate-400 font-normal">—</span>}
+                            : <span className="text-rose-400 font-normal text-[10px]">Not set</span>}
                         </td>
                         <td className="px-4 py-3.5 whitespace-nowrap text-xs text-slate-600 font-medium">
                           {new Date(rec.dateSince).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
@@ -293,7 +272,6 @@ export default function BookkeeperConsoleClient({
                           <button
                             onClick={() => {
                               setSelectedEmployeeId(rec.employee.id);
-                              setTotalOldLoans(String(rec.totalOldLoans));
                               setEstimatedAmount(rec.estimatedAmount != null ? String(rec.estimatedAmount) : "");
                               setDateSince(new Date(rec.dateSince).toISOString().substring(0, 10));
                               setRemarks(rec.remarks || "");

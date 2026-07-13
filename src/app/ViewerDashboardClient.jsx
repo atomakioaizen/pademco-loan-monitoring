@@ -206,7 +206,7 @@ export default function ViewerDashboardClient({
               <div>
                 <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Pre-existing Unpaid Loan Alert</p>
                 <h3 className="text-lg font-black text-amber-900 mt-0.5">
-                  You Have {oldLoan.totalOldLoans} Pre-existing Old Loan{oldLoan.totalOldLoans > 1 ? "s" : ""} on Record
+                  You Have a Pre-existing Old Loan on Record
                 </h3>
                 <p className="text-sm text-amber-700 font-medium mt-1 leading-relaxed">
                   These are loans recorded before the PADEMCO digital system was implemented. They are
@@ -214,18 +214,13 @@ export default function ViewerDashboardClient({
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="bg-white/80 border border-amber-200 rounded-xl p-3">
-                  <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Total Old Loans</p>
-                  <p className="text-xl font-black text-amber-800 mt-0.5">{oldLoan.totalOldLoans}</p>
-                  <p className="text-[10px] text-amber-600 font-semibold">unpaid account{oldLoan.totalOldLoans > 1 ? "s" : ""}</p>
-                </div>
-                <div className="bg-white/80 border border-amber-200 rounded-xl p-3">
-                  <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Estimated Total Amount</p>
+                  <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Total Amount Owed</p>
                   <p className="text-xl font-black text-amber-800 mt-0.5 font-mono">
                     {oldLoan.estimatedAmount != null ? formatCurrency(oldLoan.estimatedAmount) : "—"}
                   </p>
-                  <p className="text-[10px] text-amber-600 font-semibold">original estimated amount</p>
+                  <p className="text-[10px] text-amber-600 font-semibold">original loan amount</p>
                 </div>
                 <div className="bg-white/80 border border-amber-200 rounded-xl p-3">
                   <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Total Paid So Far</p>
@@ -245,8 +240,8 @@ export default function ViewerDashboardClient({
 
               <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-amber-700 font-medium bg-white/40 p-3 rounded-xl border border-amber-100">
                 <div>
-                  <span className="text-amber-500 font-bold uppercase tracking-wider text-[9px] block">Loan Exists Since</span>
-                  <span>{new Date(oldLoan.dateSince).toLocaleDateString("en-US", { month: "long", year: "numeric" })} ({Math.floor((new Date() - new Date(oldLoan.dateSince)) / (1000 * 60 * 60 * 24 * 30))} months ago)</span>
+                  <span className="text-amber-500 font-bold uppercase tracking-wider text-[9px] block">Oldest Loan Date</span>
+                  <span>{new Date(oldLoan.dateSince).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} ({Math.floor((new Date() - new Date(oldLoan.dateSince)) / (1000 * 60 * 60 * 24 * 30))} months ago)</span>
                 </div>
                 <div>
                   <span className="text-amber-500 font-bold uppercase tracking-wider text-[9px] block">Encoded By</span>
