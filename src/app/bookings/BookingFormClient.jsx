@@ -13,6 +13,8 @@ export default function BookingFormClient({
 }) {
   const [tripType, setTripType] = useState("ONE_WAY");
   const [ticketCost, setTicketCost] = useState("");
+  const [baggageFee, setBaggageFee] = useState("");
+  const [insuranceFee, setInsuranceFee] = useState("");
   const [termMonths, setTermMonths] = useState(1);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -74,7 +76,9 @@ export default function BookingFormClient({
 
   // Dynamic values for premium preview
   const parsedCost = parseFloat(ticketCost) || 0;
-  const principal = parsedCost > 0 ? parsedCost + serviceFee : 0;
+  const parsedBaggage = parseFloat(baggageFee) || 0;
+  const parsedInsurance = parseFloat(insuranceFee) || 0;
+  const principal = parsedCost > 0 ? parsedCost + serviceFee + parsedBaggage + parsedInsurance : 0;
   const interestAmount = 0; // 0% interest initially
   const totalPayable = principal;
   const monthlyInstallment = totalPayable;
@@ -85,8 +89,6 @@ export default function BookingFormClient({
     setSuccess("");
     setIsSubmitting(true);
 
-    // Capture form data synchronously BEFORE the async gap
-    // (e.currentTarget becomes null after React's event dispatch returns)
     const formData = new FormData(e.currentTarget);
     formData.append("serviceFee", String(serviceFee));
     formData.append("interestRate", "0");
@@ -99,11 +101,12 @@ export default function BookingFormClient({
         setError(res.error);
       } else {
         setSuccess("Booking registered and loan account created successfully!");
-        // Use the stable ref to reset the form (e.currentTarget is null here after await)
         if (formRef.current) {
           formRef.current.reset();
         }
         setTicketCost("");
+        setBaggageFee("");
+        setInsuranceFee("");
         setTripType("ONE_WAY");
         setTermMonths(1);
         setSelectedEmpId("");
@@ -207,6 +210,21 @@ export default function BookingFormClient({
                 required
                 autoComplete="off"
                 placeholder="e.g., PNR123456"
+                className="mt-1.5 block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-sm transition-all font-mono"
+              />
+            </div>
+
+            {/* Check Number */}
+            <div>
+              <label htmlFor="checkNumber" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Coop Disbursement Check No. (CHECK NO)
+              </label>
+              <input
+                type="text"
+                name="checkNumber"
+                id="checkNumber"
+                autoComplete="off"
+                placeholder="e.g., CHK-2026-001"
                 className="mt-1.5 block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-sm transition-all font-mono"
               />
             </div>
@@ -619,7 +637,7 @@ export default function BookingFormClient({
             {/* Ticket Cost */}
             <div>
               <label htmlFor="ticketCost" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Ticket Cost
+                Ticket Base Cost (DR)
               </label>
               <input
                 type="number"
@@ -639,15 +657,53 @@ export default function BookingFormClient({
             {/* Service Fee */}
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Cooperative Markup / Fee (Surcharge)
+                Cooperative Markup (MARK UP)
               </label>
               <div className="mt-1.5 block w-full rounded-xl border border-slate-200 bg-slate-100/70 px-4 py-2.5 text-slate-600 text-sm font-bold font-mono">
                 ₱{serviceFee.toLocaleString("en-US", { minimumFractionDigits: 2 })}
               </div>
             </div>
 
+            {/* Baggage Fee */}
+            <div>
+              <label htmlFor="baggageFee" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Baggage Charge (₱)
+              </label>
+              <input
+                type="number"
+                name="baggageFee"
+                id="baggageFee"
+                min="0"
+                step="0.01"
+                autoComplete="off"
+                placeholder="0.00"
+                value={baggageFee}
+                onChange={(e) => setBaggageFee(e.target.value)}
+                className="mt-1.5 block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-sm transition-all font-mono"
+              />
+            </div>
+
+            {/* Insurance Fee */}
+            <div>
+              <label htmlFor="insuranceFee" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Insurance Charge (VIA) (₱)
+              </label>
+              <input
+                type="number"
+                name="insuranceFee"
+                id="insuranceFee"
+                min="0"
+                step="0.01"
+                autoComplete="off"
+                placeholder="0.00"
+                value={insuranceFee}
+                onChange={(e) => setInsuranceFee(e.target.value)}
+                className="mt-1.5 block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-sm transition-all font-mono"
+              />
+            </div>
+
             {/* Remarks */}
-            <div className="md:col-span-2">
+            <div className="md:col-span-4">
               <label htmlFor="remarks" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                 Booking Notes / Remarks
               </label>

@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { logAction } from "@/lib/audit";
 import { getSession } from "@/lib/auth";
+import { findExistingMatchingName } from "@/lib/nameMatching";
 import { revalidatePath } from "next/cache";
 
 export async function approveUserAction(userId) {
@@ -30,17 +31,12 @@ export async function approveUserAction(userId) {
       return { error: `Cannot approve. The username "${pendingUser.username}" has already been taken by another account.` };
     }
 
-    // Case-insensitive duplicate full name check
-    const duplicateUserByName = allUsers.find(
-      (u) => u.name.toLowerCase() === pendingUser.name.toLowerCase() && u.id !== userId
-    );
+    // Case-insensitive & order-independent duplicate full name check
     const allEmployees = await db.employee.findMany();
-    const duplicateEmployeeByName = allEmployees.find(
-      (e) => e.fullName.toLowerCase() === pendingUser.name.toLowerCase() && (pendingUser.employeeId ? e.id !== pendingUser.employeeId : true)
-    );
+    const duplicateName = findExistingMatchingName(pendingUser.name, allUsers, allEmployees, userId, pendingUser.employeeId);
 
-    if (duplicateUserByName || duplicateEmployeeByName) {
-      return { error: `Cannot approve. The full name "${pendingUser.name}" has already been taken by another account.` };
+    if (duplicateName) {
+      return { error: `Cannot approve. An account or profile with the name "${duplicateName}" already exists in the system.` };
     }
 
     const user = await db.user.update({

@@ -21,7 +21,7 @@ export default async function BookkeeperPage() {
   if (session.role !== "BOOKKEEPER" && session.role !== "ADMIN") redirect("/");
 
   // Fetch all required data in parallel
-  const [employees, oldLoans, requests] = await Promise.all([
+  const [employees, oldLoans, requests, activeLoans] = await Promise.all([
     db.employee.findMany({
       where: {
         status: "ACTIVE",
@@ -38,6 +38,10 @@ export default async function BookkeeperPage() {
         employee: {
           include: { office: true },
         },
+        payments: {
+          include: { paidBy: true },
+          orderBy: { createdAt: "desc" },
+        },
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -47,6 +51,28 @@ export default async function BookkeeperPage() {
           include: { office: true },
         },
         requestedBy: true,
+        reviewedBy: true,
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.loan.findMany({
+      where: {
+        remainingBalance: { gt: 0 },
+      },
+      include: {
+        booking: {
+          include: {
+            employee: {
+              include: { office: true },
+            },
+            airline: true,
+            bookedBy: true,
+          },
+        },
+        payments: {
+          include: { cashier: true },
+          orderBy: { paymentDate: "desc" },
+        },
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -59,14 +85,16 @@ export default async function BookkeeperPage() {
         <div>
           <h1 className="text-2xl font-black text-primary font-sans leading-tight">Bookkeeper Operations</h1>
           <p className="text-sm text-slate-500 font-medium mt-1">
-            Encode borrowers with undocumented pre-existing loans and manage override request approvals.
+            Encode borrowers with undocumented pre-existing loans, review override requests, and monitor active borrower debts.
           </p>
         </div>
 
         <BookkeeperConsoleClient
+          user={session}
           employees={employees}
           oldLoans={oldLoans}
           requests={requests}
+          activeLoans={activeLoans}
           encodeOldLoanAction={encodeOldLoanAction}
           deleteOldLoanAction={deleteOldLoanAction}
           reviewRequestAction={reviewRequestAction}

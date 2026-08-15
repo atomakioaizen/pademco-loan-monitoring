@@ -23,8 +23,13 @@ function hashPassword(password) {
 async function main() {
   const { db } = await import("../src/lib/db.js");
 
-  const user = await db.user.findUnique({ where: { username: "maria.delacruz" } });
+  // Find by name since username was already changed to "maria"
+  const user = await db.user.findFirst({
+    where: { name: { contains: "Maria Santos", mode: "insensitive" } },
+  });
   if (!user) { console.error("User not found"); process.exit(1); }
+
+  console.log("Found user:", user.username, "|", user.name);
 
   await db.user.update({
     where: { id: user.id },
@@ -38,3 +43,4 @@ async function main() {
   await db.$disconnect();
 }
 main().catch(e => { console.error(e); process.exit(1); });
+

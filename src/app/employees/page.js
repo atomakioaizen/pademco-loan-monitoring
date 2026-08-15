@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { getSession, hashPassword } from "@/lib/auth";
 import { logAction } from "@/lib/audit";
+import { findExistingMatchingName } from "@/lib/nameMatching";
 import AppLayout from "@/components/AppLayout";
 import UseDefaultPasswordButton from "@/components/UseDefaultPasswordButton";
 import Link from "next/link";
@@ -116,16 +117,11 @@ export default async function EmployeesPage({ searchParams }) {
         }
       }
 
-      // Duplicate fullName check case-insensitively
-      const duplicateEmpName = allEmployees.find(
-        (e) => e.fullName.toLowerCase() === fullName.toLowerCase() && (id ? e.id !== id : true)
-      );
+      // Duplicate fullName check (case-insensitive & order-independent)
       const allUsers = await db.user.findMany();
-      const duplicateUserName = allUsers.find(
-        (u) => u.name.toLowerCase() === fullName.toLowerCase() && (id ? u.employeeId !== id : true)
-      );
-      if (duplicateEmpName || duplicateUserName) {
-        redirect(`/employees?tab=${id ? "active" : "create"}${id ? `&viewId=${id}` : ""}&error=${encodeURIComponent(`Full Name "${fullName}" is already taken by another record.`)}`);
+      const duplicateName = findExistingMatchingName(fullName, allUsers, allEmployees, null, id);
+      if (duplicateName) {
+        redirect(`/employees?tab=${id ? "active" : "create"}${id ? `&viewId=${id}` : ""}&error=${encodeURIComponent(`An account or profile for "${duplicateName}" already exists in the system.`)}`);
       }
 
       let emp;

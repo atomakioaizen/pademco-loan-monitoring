@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { getSession, hashPassword } from "@/lib/auth";
 import { logAction } from "@/lib/audit";
+import { findExistingMatchingName } from "@/lib/nameMatching";
 import AppLayout from "@/components/AppLayout";
 import CreateUserForm from "./CreateUserForm";
 import CooperativeSettingsForm from "./CooperativeSettingsForm";
@@ -237,16 +238,11 @@ export default async function SettingsPage({ searchParams }) {
         return { error: `Username "${username}" is already taken by another system user.` };
       }
 
-      // Check duplicate full name (case-insensitive)
-      const existingUserByName = allUsers.find(
-        (u) => u.name.toLowerCase() === name.toLowerCase()
-      );
+      // Check duplicate full name (case-insensitive & order-independent)
       const allEmployees = await db.employee.findMany();
-      const existingEmployeeByName = allEmployees.find(
-        (e) => e.fullName.toLowerCase() === name.toLowerCase()
-      );
-      if (existingUserByName || existingEmployeeByName) {
-        return { error: `Full name "${name}" is already registered.` };
+      const duplicateName = findExistingMatchingName(name, allUsers, allEmployees);
+      if (duplicateName) {
+        return { error: `An account or profile for "${duplicateName}" already exists in the system.` };
       }
 
       const passwordHash = hashPassword(password);

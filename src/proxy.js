@@ -55,8 +55,8 @@ export function proxy(request) {
       return NextResponse.redirect(homeUrl);
     }
 
-    // 2. Reports: ADMIN and BOOKKEEPER only
-    if (pathname.startsWith("/reports") && user.role !== "ADMIN" && user.role !== "BOOKKEEPER") {
+    // 2. Reports: ADMIN, BOOKKEEPER, CASHIER, and AGENT access
+    if (pathname.startsWith("/reports") && !["ADMIN", "BOOKKEEPER", "CASHIER", "AGENT"].includes(user.role)) {
       const homeUrl = new URL("/", request.url);
       return NextResponse.redirect(homeUrl);
     }

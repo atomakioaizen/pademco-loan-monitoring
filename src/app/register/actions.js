@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
+import { findExistingMatchingName } from "@/lib/nameMatching";
 
 // Hardcoded Palawan office stations
 const PALAWAN_OFFICES = [
@@ -54,16 +55,11 @@ export async function registerAction(prevState, formData) {
       return { error: "Username is already taken." };
     }
 
-    // 2. Check if name / fullName already exists (case-insensitive)
-    const existingUserByName = allUsers.find(
-      (u) => u.name.toLowerCase() === name.toLowerCase()
-    );
+    // 2. Check if name / fullName already exists (case-insensitive & order-independent)
     const allEmployees = await db.employee.findMany();
-    const existingEmployeeByName = allEmployees.find(
-      (e) => e.fullName.toLowerCase() === name.toLowerCase()
-    );
-    if (existingUserByName || existingEmployeeByName) {
-      return { error: "An account or profile with this Full Name is already registered." };
+    const duplicateName = findExistingMatchingName(name, allUsers, allEmployees);
+    if (duplicateName) {
+      return { error: `An account with the name "${duplicateName}" already exists. Please request your account credentials directly from the Administrator.` };
     }
 
     // 3. If employeeId provided, check if it already exists (case-insensitive)

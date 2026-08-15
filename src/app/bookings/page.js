@@ -135,6 +135,10 @@ export default async function BookingsPage() {
     const termMonths = 1;
     const interestRate = 0; // 0% initial interest during first month
 
+    const checkNumber = formData.get("checkNumber")?.trim() || null;
+    const baggageFee = parseFloat(formData.get("baggageFee") || "0");
+    const insuranceFee = parseFloat(formData.get("insuranceFee") || "0");
+
     if (!employeeId || !airlineId || !referenceNumber || !destination || !travelDateStr || ticketCost <= 0) {
       return { error: "Please enter all required booking fields." };
     }
@@ -184,7 +188,7 @@ export default async function BookingsPage() {
       }
 
       // Compute Loan figures
-      const principalAmount = ticketCost + serviceFee;
+      const principalAmount = ticketCost + serviceFee + baggageFee + insuranceFee;
       const interestAmount = principalAmount * (interestRate / 100);
       const totalAmountPayable = principalAmount + interestAmount;
       const monthlyInstallment = totalAmountPayable / termMonths;
@@ -216,6 +220,9 @@ export default async function BookingsPage() {
             returnTime,
             ticketCost,
             serviceFee,
+            checkNumber,
+            baggageFee,
+            insuranceFee,
             tripType,
             flightCount,
             remarks,

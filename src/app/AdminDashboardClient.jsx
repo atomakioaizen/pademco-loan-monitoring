@@ -137,216 +137,186 @@ export default function AdminDashboardClient({ loans, payments, session, stats, 
 
   return (
     <div className="space-y-8">
-      {/* Top Header Card - Premium Redesign */}
-      <div className="relative bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 rounded-3xl p-6 md:p-8 text-white shadow-2xl overflow-hidden border border-blue-900/30">
+      {/* Top Header Card - Executive Glassmorphic Redesign */}
+      <div className="relative bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 md:p-8 text-white shadow-2xl overflow-hidden border border-slate-800/80">
         {/* Decorative glows */}
-        <div className="absolute right-0 top-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
-        <div className="absolute left-1/4 bottom-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl -mb-16 pointer-events-none" />
-        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-400/30 to-transparent" />
+        <div className="absolute right-0 top-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl -mr-24 -mt-24 pointer-events-none" />
+        <div className="absolute left-1/3 bottom-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mb-24 pointer-events-none" />
+        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-400/40 to-transparent" />
 
-        <div className="relative z-10">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <span className="text-[10px] bg-blue-500/20 border border-blue-400/30 px-3 py-1.5 rounded-full font-black uppercase tracking-wider text-blue-300">
-                  {session.role} Dashboard
-                </span>
-                <span className="text-[10px] bg-emerald-500/20 border border-emerald-400/30 px-3 py-1.5 rounded-full font-black text-emerald-300 uppercase tracking-wider">
-                  ● Live
-                </span>
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center font-black text-sm text-blue-200 shadow-inner">
+                {session.name?.charAt(0).toUpperCase() || "A"}
               </div>
-              <h1 className="text-2xl md:text-4xl font-black tracking-tight text-white">
-                Welcome, <span className="text-blue-300">{session.name || "Administrator"}!</span>
-              </h1>
-              <p className="text-xs md:text-sm text-slate-400 font-medium max-w-xl">
-                PADEMCO Airline Loan Monitoring Portal — Click any stat card to view the full transaction breakdown.
-              </p>
+              <span className="text-[10px] bg-blue-500/20 border border-blue-400/30 px-3 py-1 rounded-full font-black uppercase tracking-wider text-blue-300">
+                {session.role} CONSOLE
+              </span>
+              <span className="text-[10px] bg-emerald-500/20 border border-emerald-400/30 px-3 py-1 rounded-full font-black text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                LIVE SYSTEM
+              </span>
             </div>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white leading-tight">
+              Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-indigo-200">{session.name || "Administrator"}</span> 👋
+            </h1>
+            <p className="text-xs md:text-sm text-slate-400 font-medium max-w-2xl leading-relaxed">
+              PADEMCO Cooperative Financial Portal — Comprehensive real-time monitoring of airline ticket loans, collections, overdue receivables, and borrower ledgers.
+            </p>
+          </div>
 
-            {/* Quick stats pills */}
-            <div className="flex flex-wrap gap-3">
-              <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-center min-w-[80px]">
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Active</p>
-                <p className="text-xl font-black text-blue-300 mt-0.5">{stats.activeLoansCount}</p>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-center min-w-[80px]">
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Overdue</p>
-                <p className={`text-xl font-black mt-0.5 ${stats.overdueCount > 0 ? 'text-rose-400' : 'text-slate-400'}`}>{stats.overdueCount}</p>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-center min-w-[80px]">
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Paid</p>
-                <p className="text-xl font-black text-emerald-400 mt-0.5">{stats.fullyPaidCount}</p>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-center min-w-[80px]">
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Borrowers</p>
-                <p className="text-xl font-black text-amber-300 mt-0.5">{stats.employeesWithLoansCount}</p>
-              </div>
+          <div className="flex items-center gap-3 self-start md:self-auto bg-white/5 border border-white/10 p-3.5 rounded-2xl backdrop-blur-md">
+            <div className="text-right">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Active Loan Agreements</span>
+              <span className="text-base font-black text-blue-300 font-mono">{stats.activeLoansCount} Running Loans</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Clickable Stat Cards Grid */}
-      <div>
-        <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-4">
-          Primary Report Summary (Click a card to view breakdown)
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+      {/* Primary Financial Overview Grid */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-primary"></span>
+            Financial Overview (Click any card to inspect breakdown)
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {/* CARD 1: Outstanding Balance */}
           <div
             onClick={() => openModal("outstanding")}
-            className="group bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:shadow-md hover:border-teal-500 transition-all cursor-pointer relative overflow-hidden"
+            className="group bg-white rounded-3xl p-6 border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-indigo-400 transition-all duration-200 cursor-pointer relative overflow-hidden"
           >
             <div className="flex justify-between items-start">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Outstanding Balance</span>
-              <div className="bg-teal-50 text-teal-700 p-2 rounded-2xl">
+              <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
             <div className="mt-4">
-              <span className="text-2xl md:text-3xl font-black text-slate-900 group-hover:text-teal-750 transition-colors block font-mono">
+              <span className="text-2xl md:text-3xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors block font-mono">
                 {formatCurrency(stats.totalOutstandingBalance)}
               </span>
-              <span className="text-[10px] text-slate-400 font-bold block mt-1">
-                Total balance of all active ticket loans
+              <span className="text-[10px] text-slate-400 font-medium block mt-1">
+                Total balance across active ticket loans
               </span>
             </div>
-            <div className="mt-4 text-[10px] font-black text-teal-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-              View List &rarr;
+            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-indigo-600">
+              <span>View Breakdown</span>
+              <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
             </div>
           </div>
 
           {/* CARD 2: Total Collections */}
           <div
             onClick={() => openModal("collections")}
-            className="group bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-500 transition-all cursor-pointer relative overflow-hidden"
+            className="group bg-white rounded-3xl p-6 border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-emerald-400 transition-all duration-200 cursor-pointer relative overflow-hidden"
           >
             <div className="flex justify-between items-start">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Collections</span>
-              <div className="bg-emerald-50 text-emerald-750 p-2 rounded-2xl">
+              <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                 </svg>
               </div>
             </div>
             <div className="mt-4">
-              <span className="text-2xl md:text-3xl font-black text-slate-900 group-hover:text-emerald-750 transition-colors block font-mono">
+              <span className="text-2xl md:text-3xl font-black text-slate-900 group-hover:text-emerald-600 transition-colors block font-mono">
                 {formatCurrency(stats.totalCollections)}
               </span>
-              <span className="text-[10px] text-slate-400 font-bold block mt-1">
-                Total collection amount from installment payments
+              <span className="text-[10px] text-slate-400 font-medium block mt-1">
+                Total payments collected to date
               </span>
             </div>
-            <div className="mt-4 text-[10px] font-black text-emerald-750 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-              View List &rarr;
+            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-emerald-600">
+              <span>View Collections Log</span>
+              <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
             </div>
           </div>
 
           {/* CARD 3: Profit Earned */}
           <div
             onClick={() => openModal("profit")}
-            className="group bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-500 transition-all cursor-pointer relative overflow-hidden"
+            className="group bg-white rounded-3xl p-6 border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-blue-400 transition-all duration-200 cursor-pointer relative overflow-hidden"
           >
             <div className="flex justify-between items-start">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Profit Earned</span>
-              <div className="bg-blue-50 text-blue-700 p-2 rounded-2xl">
+              <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
               </div>
             </div>
             <div className="mt-4">
-              <span className="text-2xl md:text-3xl font-black text-slate-900 group-hover:text-blue-750 transition-colors block font-mono">
+              <span className="text-2xl md:text-3xl font-black text-slate-900 group-hover:text-blue-600 transition-colors block font-mono">
                 {formatCurrency(stats.totalProfit)}
               </span>
-              <span className="text-[10px] text-slate-400 font-bold block mt-1">
-                Total profit generated from cooperative loan interest
+              <span className="text-[10px] text-slate-400 font-medium block mt-1">
+                Net interest income earned
               </span>
             </div>
-            <div className="mt-4 text-[10px] font-black text-blue-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-              View List &rarr;
+            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-blue-600">
+              <span>View Profit Log</span>
+              <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
             </div>
           </div>
 
           {/* CARD 4: Overdue Accounts */}
           <div
             onClick={() => openModal("overdue")}
-            className="group bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:shadow-md hover:border-rose-500 transition-all cursor-pointer relative overflow-hidden"
+            className="group bg-white rounded-3xl p-6 border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-rose-400 transition-all duration-200 cursor-pointer relative overflow-hidden"
           >
             <div className="flex justify-between items-start">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Overdue Accounts</span>
-              <div className={`p-2 rounded-2xl ${stats.overdueCount > 0 ? "bg-rose-100 text-rose-700 animate-pulse" : "bg-rose-50 text-rose-700"}`}>
+              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform ${stats.overdueCount > 0 ? "bg-rose-100 text-rose-600 animate-pulse" : "bg-rose-50 text-rose-600"}`}>
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
             </div>
             <div className="mt-4">
-              <span className="text-2xl md:text-3xl font-black text-slate-900 group-hover:text-rose-750 transition-colors block font-mono">
+              <span className="text-2xl md:text-3xl font-black text-slate-900 group-hover:text-rose-600 transition-colors block font-mono">
                 {stats.overdueCount} Accounts
               </span>
-              <span className="text-[10px] text-slate-400 font-bold block mt-1">
-                Accounts that have exceeded their payment due date
+              <span className="text-[10px] text-slate-400 font-medium block mt-1">
+                Accounts exceeding payment schedule
               </span>
             </div>
-            <div className="mt-4 text-[10px] font-black text-rose-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-              View List &rarr;
+            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-rose-600">
+              <span>View Overdue List</span>
+              <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
             </div>
           </div>
-
-          {/* CARD 5: Pending Registrations (Admin Only) */}
-          {session.role === "ADMIN" && (
-            <div
-              onClick={() => openModal("pending_registrations")}
-              className={`group bg-white rounded-3xl p-6 border shadow-sm hover:shadow-md hover:border-amber-500 transition-all cursor-pointer relative overflow-hidden ${pendingUsers.length > 0 ? "border-amber-300 ring-2 ring-amber-100" : "border-slate-200"}`}
-            >
-              <div className="flex justify-between items-start">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Registrations</span>
-                <div className={`p-2 rounded-2xl ${pendingUsers.length > 0 ? "bg-amber-100 text-amber-700" : "bg-amber-50 text-amber-700"}`}>
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                  </svg>
-                </div>
-              </div>
-              <div className="mt-4">
-                <span className="text-2xl md:text-3xl font-black text-slate-900 group-hover:text-amber-750 transition-colors block font-mono">
-                  {pendingUsers.length} Requests
-                </span>
-                <span className="text-[10px] text-slate-400 font-bold block mt-1">
-                  New users waiting for credentials validation
-                </span>
-              </div>
-              <div className="mt-4 text-[10px] font-black text-amber-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                View & Approve &rarr;
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Secondary Clickable Stats Section - "Other Information" */}
-      <div>
-        <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-          Other Information
-          <span className="text-slate-500 font-normal normal-case tracking-normal">(click to view)</span>
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      {/* Portfolio & Operational Status Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+            Portfolio & Operational Metrics
+          </h2>
+        </div>
 
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {/* Active Loans */}
           <div
             onClick={() => openModal("active_loans")}
-            className="group bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-400 transition-all cursor-pointer relative overflow-hidden"
+            className="group bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md hover:border-blue-400 hover:translate-y-[-2px] transition-all cursor-pointer relative overflow-hidden"
           >
             <div className="flex items-center justify-between mb-3">
               <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <span className="text-[9px] font-black text-blue-500 uppercase tracking-wider group-hover:translate-x-0.5 transition-transform">View →</span>
+              <span className="text-[10px] font-black text-blue-500 uppercase tracking-wider group-hover:translate-x-1 transition-transform">Details →</span>
             </div>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Active Loans</span>
             <span className="text-2xl font-black text-slate-800 font-mono mt-1 block">{stats.activeLoansCount}</span>
@@ -355,15 +325,15 @@ export default function AdminDashboardClient({ loans, payments, session, stats, 
           {/* Fully Paid */}
           <div
             onClick={() => openModal("fully_paid")}
-            className="group bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-400 transition-all cursor-pointer relative overflow-hidden"
+            className="group bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md hover:border-emerald-400 hover:translate-y-[-2px] transition-all cursor-pointer relative overflow-hidden"
           >
             <div className="flex items-center justify-between mb-3">
               <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <span className="text-[9px] font-black text-emerald-500 uppercase tracking-wider group-hover:translate-x-0.5 transition-transform">View →</span>
+              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-wider group-hover:translate-x-1 transition-transform">Details →</span>
             </div>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Fully Paid</span>
             <span className="text-2xl font-black text-slate-800 font-mono mt-1 block">{stats.fullyPaidCount}</span>
@@ -372,15 +342,15 @@ export default function AdminDashboardClient({ loans, payments, session, stats, 
           {/* Due This Month */}
           <div
             onClick={() => openModal("due_this_month")}
-            className="group bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md hover:border-amber-400 transition-all cursor-pointer relative overflow-hidden"
+            className="group bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md hover:border-amber-400 hover:translate-y-[-2px] transition-all cursor-pointer relative overflow-hidden"
           >
             <div className="flex items-center justify-between mb-3">
               <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <span className="text-[9px] font-black text-amber-500 uppercase tracking-wider group-hover:translate-x-0.5 transition-transform">View →</span>
+              <span className="text-[10px] font-black text-amber-500 uppercase tracking-wider group-hover:translate-x-1 transition-transform">Details →</span>
             </div>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Due This Month</span>
             <span className="text-2xl font-black text-slate-800 font-mono mt-1 block">{stats.dueThisMonthCount}</span>
@@ -389,15 +359,15 @@ export default function AdminDashboardClient({ loans, payments, session, stats, 
           {/* Total Borrowers */}
           <div
             onClick={() => openModal("total_borrowers")}
-            className="group bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md hover:border-violet-400 transition-all cursor-pointer relative overflow-hidden"
+            className="group bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md hover:border-violet-400 hover:translate-y-[-2px] transition-all cursor-pointer relative overflow-hidden"
           >
             <div className="flex items-center justify-between mb-3">
               <div className="w-9 h-9 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
-              <span className="text-[9px] font-black text-violet-500 uppercase tracking-wider group-hover:translate-x-0.5 transition-transform">View →</span>
+              <span className="text-[10px] font-black text-violet-500 uppercase tracking-wider group-hover:translate-x-1 transition-transform">Details →</span>
             </div>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Borrowers</span>
             <span className="text-2xl font-black text-slate-800 font-mono mt-1 block">{stats.employeesWithLoansCount}</span>
@@ -406,20 +376,43 @@ export default function AdminDashboardClient({ loans, payments, session, stats, 
           {/* Pre-existing Old Loans Card */}
           <div
             onClick={() => openModal("old_loans")}
-            className="group bg-white rounded-2xl p-5 border border-rose-100 shadow-sm hover:shadow-md hover:border-rose-450 hover:shadow-rose-50/55 transition-all cursor-pointer relative overflow-hidden"
+            className="group bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md hover:border-rose-400 hover:translate-y-[-2px] transition-all cursor-pointer relative overflow-hidden"
           >
             <div className="flex items-center justify-between mb-3">
               <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
-              <span className="text-[9px] font-black text-rose-500 uppercase tracking-wider group-hover:translate-x-0.5 transition-transform">View →</span>
+              <span className="text-[9px] font-black text-rose-500 uppercase tracking-wider group-hover:translate-x-1 transition-transform">Details →</span>
             </div>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pre-existing Old Loans</span>
             <span className="text-2xl font-black text-rose-600 font-mono mt-1 block">{oldLoans.length}</span>
           </div>
         </div>
+
+        {/* Pending User Registrations Banner Card for Admin */}
+        {session.role === "ADMIN" && pendingUsers.length > 0 && (
+          <div
+            onClick={() => openModal("pending_registrations")}
+            className="bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-2xl p-5 shadow-lg flex items-center justify-between cursor-pointer hover:shadow-xl hover:scale-[1.005] transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white font-bold text-lg">
+                ⚠️
+              </div>
+              <div>
+                <h4 className="text-sm font-black uppercase tracking-wider">Pending User Registration Requests</h4>
+                <p className="text-xs text-amber-100 font-medium mt-0.5">
+                  There are <b>{pendingUsers.length} user registrations</b> waiting for administrator approval and validation.
+                </p>
+              </div>
+            </div>
+            <button className="bg-white text-amber-900 px-4 py-2 rounded-xl text-xs font-black shadow-md hover:bg-amber-50 transition-all cursor-pointer">
+              Review & Approve ({pendingUsers.length}) →
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Modals for Breakdowns */}

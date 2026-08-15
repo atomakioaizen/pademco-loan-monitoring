@@ -137,6 +137,9 @@ export default async function PaymentsPage() {
     const paymentMethod = formData.get("paymentMethod") || "CASH";
     const remarks = formData.get("remarks")?.trim();
 
+    const penaltyAmount = parseFloat(formData.get("penaltyAmount") || "0");
+    const ticketPurchased = parseFloat(formData.get("ticketPurchased") || "0") || null;
+
     if (!loanId || !receiptNumber || amountPaid <= 0 || !paymentDateStr) {
       return { error: "Please fill in all required fields." };
     }
@@ -184,6 +187,8 @@ export default async function PaymentsPage() {
             loanId,
             receiptNumber,
             amountPaid,
+            penaltyAmount,
+            ticketPurchased,
             paymentDate,
             paymentMethod,
             remarks,

@@ -1,13 +1,21 @@
 const { PrismaClient } = require("@prisma/client");
+const { PrismaBetterSqlite3 } = require("@prisma/adapter-better-sqlite3");
+const Database = require("better-sqlite3");
 const { PrismaPg } = require("@prisma/adapter-pg");
 const pg = require("pg");
 const crypto = require("crypto");
 
 require("dotenv").config();
 
-const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+let prisma;
+if (process.env.DATABASE_URL?.startsWith("file:")) {
+  const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL });
+  prisma = new PrismaClient({ adapter });
+} else {
+  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+  const adapter = new PrismaPg(pool);
+  prisma = new PrismaClient({ adapter });
+}
 
 function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString("hex");
@@ -67,27 +75,93 @@ async function main() {
     await prisma.systemSetting.upsert({ where: { key: s.key }, update: { value: s.value }, create: s });
   }
 
-  // ─── STEP 5: CREATE NEW ADMIN ACCOUNT ────────────────────────────────────
-  console.log("👤  Creating Admin Account...");
-  await prisma.user.create({
+  // ─── STEP 5: CREATE USER ACCOUNTS FOR ALL ROLES ──────────────────────────
+  console.log("👤  Creating User Accounts for all roles...");
+  const adminUser = await prisma.user.create({
     data: {
       username: "DENR Pademco",
       name: "DENR Pademco Admin",
       passwordHash: hashPassword("pademco123"),
       role: "ADMIN",
-      status: "ACTIVE",
+      status: "APPROVED",
     },
   });
 
+  const bookkeeperUser = await prisma.user.create({
+    data: {
+      username: "bookkeeper",
+      name: "Maria Santos (Bookkeeper)",
+      passwordHash: hashPassword("pademco123"),
+      role: "BOOKKEEPER",
+      status: "APPROVED",
+    },
+  });
+
+  const agentUser = await prisma.user.create({
+    data: {
+      username: "agent",
+      name: "Juan Dela Cruz (Agent)",
+      passwordHash: hashPassword("pademco123"),
+      role: "AGENT",
+      status: "APPROVED",
+    },
+  });
+
+  const cashierUser = await prisma.user.create({
+    data: {
+      username: "cashier",
+      name: "Ana Reyes (Cashier)",
+      passwordHash: hashPassword("pademco123"),
+      role: "CASHIER",
+      status: "APPROVED",
+    },
+  });
+
+  // ─── STEP 6: SEED BASELINE EMPLOYEES ───────────────────────────────────────
+  console.log("📋 Seeding Baseline Employees...");
+  const penroOffice = await prisma.office.findFirst({ where: { name: "PENRO Palawan" } });
+
+  const clientEmployeesData = [
+    { fullName: "PEDRO VELASCO", position: "Forest Ranger" },
+    { fullName: "TERESA AYSON", position: "Administrative Aide" },
+    { fullName: "RONIE GANDEZA", position: "EMS Officer" },
+    { fullName: "GLENDA SANCHEZ", position: "Land Management Officer" },
+    { fullName: "EPHRAIM OCOP", position: "Cartographer" },
+    { fullName: "LIM BRYAN KUTAT", position: "Senior Forest Specialist" },
+  ];
+
+  let empCounter = 1001;
+  for (const emp of clientEmployeesData) {
+    const createdEmp = await prisma.employee.create({
+      data: {
+        employeeId: `EMP-${empCounter++}`,
+        fullName: emp.fullName,
+        position: emp.position,
+        contactNumber: "09170000000",
+        officeId: penroOffice.id,
+      },
+    });
+
+    // Also link a VIEWER user account to each employee so they appear in borrower dropdowns
+    await prisma.user.create({
+      data: {
+        username: emp.fullName.toLowerCase().replace(/\s+/g, "."),
+        name: emp.fullName,
+        passwordHash: hashPassword("pademco123"),
+        role: "VIEWER",
+        status: "APPROVED",
+        employeeId: createdEmp.id,
+      },
+    });
+  }
+
   console.log("\n✅ DB CLEANUP & RESEED COMPLETE!\n");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log("  ADMIN ACCOUNT DETAILS:");
-  console.log("  👤 Username: DENR Pademco");
-  console.log("  🔑 Password: pademco123");
-  console.log("  Role:        ADMIN (ACTIVE)");
-  console.log("");
-  console.log("  PALAWAN OFFICES SEEDED:");
-  officeNames.forEach(o => console.log(`  🏢 ${o}`));
+  console.log("  USER ACCOUNTS SEEDED (Password for all: pademco123):");
+  console.log("  🛡️  Admin:      DENR Pademco");
+  console.log("  📚 Bookkeeper: bookkeeper");
+  console.log("  🎟️  Agent:      agent");
+  console.log("  💵 Cashier:    cashier");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 }
 

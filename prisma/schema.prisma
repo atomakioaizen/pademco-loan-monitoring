@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
+  provider = "postgresql"
 }
 
 model User {
@@ -88,6 +88,9 @@ model Booking {
   tripType        String           @default("ONE_WAY") // "ONE_WAY" or "ROUND_TRIP"
   flightCount     Int              @default(1)        // 1 for ONE_WAY, 2 for ROUND_TRIP
   remarks         String?
+  checkNumber           String?
+  baggageFee            Float            @default(0)
+  insuranceFee          Float            @default(0)
   isArchived            Boolean          @default(false)
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
@@ -124,18 +127,21 @@ model Loan {
 }
 
 model Payment {
-  id             String   @id @default(uuid())
-  loanId         String
-  loan           Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
-  receiptNumber  String   @unique
-  amountPaid     Float
-  paymentDate    DateTime @default(now())
-  paymentMethod  String   @default("CASH") // "CASH", "GCASH", "BANK_TRANSFER"
-  remarks        String?
-  cashierId      String
-  cashier        User     @relation(fields: [cashierId], references: [id])
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id              String   @id @default(uuid())
+  loanId          String
+  loan            Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  receiptNumber   String   @unique
+  amountPaid      Float
+  penaltyAmount   Float    @default(0)
+  insuranceFee    Float    @default(0)
+  ticketPurchased Float?
+  paymentDate     DateTime @default(now())
+  paymentMethod   String   @default("CASH") // "CASH", "GCASH", "BANK_TRANSFER"
+  remarks         String?
+  cashierId       String
+  cashier         User     @relation(fields: [cashierId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([loanId])
   @@index([cashierId])

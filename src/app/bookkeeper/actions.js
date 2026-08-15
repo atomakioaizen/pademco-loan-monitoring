@@ -7,8 +7,8 @@ import { revalidatePath } from "next/cache";
 
 export async function encodeOldLoanAction(formData) {
   const session = await getSession();
-  if (!session || (session.role !== "BOOKKEEPER" && session.role !== "ADMIN")) {
-    throw new Error("Unauthorized");
+  if (!session || session.role !== "BOOKKEEPER") {
+    return { error: "Only Bookkeepers can perform encoding and edit actions. Admin access is view-only." };
   }
 
   const employeeId = formData.get("employeeId");
@@ -68,8 +68,8 @@ export async function encodeOldLoanAction(formData) {
 
 export async function deleteOldLoanAction(id) {
   const session = await getSession();
-  if (!session || (session.role !== "BOOKKEEPER" && session.role !== "ADMIN")) {
-    throw new Error("Unauthorized");
+  if (!session || session.role !== "BOOKKEEPER") {
+    return { error: "Only Bookkeepers can delete records. Admin access is view-only." };
   }
 
   try {
@@ -108,8 +108,8 @@ export async function deleteOldLoanAction(id) {
 
 export async function reviewRequestAction(formData) {
   const session = await getSession();
-  if (!session || (session.role !== "BOOKKEEPER" && session.role !== "ADMIN")) {
-    throw new Error("Unauthorized");
+  if (!session || session.role !== "BOOKKEEPER") {
+    return { error: "Only Bookkeepers can review and decide on booking override requests. Admin access is view-only." };
   }
 
   const requestId = formData.get("requestId");

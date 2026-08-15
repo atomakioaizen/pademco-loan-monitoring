@@ -17,6 +17,8 @@ export default function RecordPaymentForm({
   const [selectedLoanId, setSelectedLoanId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [amountPaid, setAmountPaid] = useState("");
+  const [penaltyAmount, setPenaltyAmount] = useState("0");
+  const [ticketPurchased, setTicketPurchased] = useState("");
 
   // Extract unique employees who have active loans
   const uniqueEmployees = [];
@@ -100,7 +102,7 @@ export default function RecordPaymentForm({
     });
   };
 
-  const schedule = getInstallmentSchedule(selectedLoan);
+  const schedule = selectedLoan ? getInstallmentSchedule(selectedLoan) : [];
   const totalAccruedPenalty = schedule.reduce((sum, inst) => sum + inst.penalty, 0);
   const nextDueInstallment = schedule.find((inst) => inst.isNextDue);
 
@@ -109,9 +111,13 @@ export default function RecordPaymentForm({
     if (selectedLoan) {
       const sch = getInstallmentSchedule(selectedLoan);
       const penalty = sch.reduce((sum, inst) => sum + inst.penalty, 0);
+      setPenaltyAmount(penalty.toFixed(2));
       setAmountPaid((selectedLoan.remainingBalance + penalty).toFixed(2));
+      setTicketPurchased(selectedLoan.booking?.ticketCost ? selectedLoan.booking.ticketCost.toFixed(2) : "");
     } else {
       setAmountPaid("");
+      setPenaltyAmount("0");
+      setTicketPurchased("");
     }
   }, [selectedLoanId]);
 
@@ -408,6 +414,42 @@ export default function RecordPaymentForm({
             value={amountPaid}
             placeholder="0.00"
             className="block w-full rounded-xl border border-slate-350 bg-slate-50 text-slate-500 cursor-not-allowed px-4 py-2.5 focus:outline-none text-sm font-mono font-bold"
+          />
+        </div>
+
+        {/* Penalty Amount */}
+        <div>
+          <label htmlFor="penaltyAmount" className="block text-sm font-semibold text-slate-700">
+            Penalty Amount Collected (PENALTY) (₱)
+          </label>
+          <input
+            type="number"
+            name="penaltyAmount"
+            id="penaltyAmount"
+            step="0.01"
+            min="0"
+            value={penaltyAmount}
+            onChange={(e) => setPenaltyAmount(e.target.value)}
+            placeholder="0.00"
+            className="mt-1 block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-sm transition-all font-mono"
+          />
+        </div>
+
+        {/* Ticket Purchased Portion */}
+        <div>
+          <label htmlFor="ticketPurchased" className="block text-sm font-semibold text-slate-700">
+            Ticket Purchased Applied Amount (₱)
+          </label>
+          <input
+            type="number"
+            name="ticketPurchased"
+            id="ticketPurchased"
+            step="0.01"
+            min="0"
+            value={ticketPurchased}
+            onChange={(e) => setTicketPurchased(e.target.value)}
+            placeholder="0.00"
+            className="mt-1 block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-sm transition-all font-mono"
           />
         </div>
 

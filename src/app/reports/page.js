@@ -16,15 +16,21 @@ export const metadata = {
 export default async function ReportsPage({ searchParams }) {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (session.role !== "ADMIN" && session.role !== "BOOKKEEPER") redirect("/");
+  if (!["ADMIN", "BOOKKEEPER", "CASHIER", "AGENT"].includes(session.role)) redirect("/");
 
   // Get filter parameters from URL
   const resolvedSearchParams = await searchParams;
-  const reportType = resolvedSearchParams.type || "outstanding"; // "outstanding", "fullypaid", "overdue", "collections", "profit", "aging", "ledger", "fee_breakdown"
+  const reportType = resolvedSearchParams.type || "unpaid_schedule"; // "unpaid_schedule", "outstanding", "fullypaid", "overdue", "collections", "profit", "aging", "ledger", "fee_breakdown"
   const officeFilter = resolvedSearchParams.office || "";
   const employeeFilter = resolvedSearchParams.employee || "";
   const fromDateStr = resolvedSearchParams.from || "";
   const toDateStr = resolvedSearchParams.to || "";
+
+  // Schedule of Unpaid Tickets specific filters
+  const sourceFilter = resolvedSearchParams.source || "ALL"; // "ALL", "NEW_TICKET", "OLD_LOAN"
+  const yearFilter = resolvedSearchParams.year || "";
+  const monthFilter = resolvedSearchParams.month || "";
+  const sortOrder = resolvedSearchParams.sort || "desc"; // "desc" (Newest first), "asc" (Oldest first)
 
   // Formulate date range where applicable
   const dateFilter = {};
@@ -46,6 +52,8 @@ export default async function ReportsPage({ searchParams }) {
   };
 
   // Define promises dynamically to fire in parallel
+  let unpaidSchedulePromise = Promise.resolve([]);
+  let oldLoansSchedulePromise = Promise.resolve([]);
   let outstandingPromise = Promise.resolve([]);
   let fullyPaidPromise = Promise.resolve([]);
   let overduePromise = Promise.resolve([]);
@@ -58,7 +66,33 @@ export default async function ReportsPage({ searchParams }) {
   let ledgerBookingsPromise = Promise.resolve([]);
   let feeBreakdownPromise = Promise.resolve([]);
 
-  if (reportType === "outstanding") {
+  if (reportType === "unpaid_schedule") {
+    unpaidSchedulePromise = db.loan.findMany({
+      where: {
+        ...commonWhereLoan,
+      },
+      include: {
+        booking: { include: { employee: { include: { office: true } }, airline: true } },
+        payments: { orderBy: { paymentDate: "desc" } },
+      },
+      orderBy: { createdAt: sortOrder === "asc" ? "asc" : "desc" },
+    });
+
+    oldLoansSchedulePromise = db.oldLoan.findMany({
+      where: {
+        AND: [
+          officeFilter ? { employee: { officeId: officeFilter } } : {},
+          employeeFilter ? { employeeId: employeeFilter } : {},
+          fromDateStr || toDateStr ? { createdAt: dateFilter } : {},
+        ],
+      },
+      include: {
+        employee: { include: { office: true } },
+        payments: { orderBy: { createdAt: "desc" } },
+      },
+      orderBy: { createdAt: sortOrder === "asc" ? "asc" : "desc" },
+    });
+  } else if (reportType === "outstanding") {
     outstandingPromise = db.loan.findMany({
       where: {
         remainingBalance: { gt: 0 },
@@ -201,6 +235,8 @@ export default async function ReportsPage({ searchParams }) {
   const [
     offices,
     allEmployees,
+    unpaidScheduleLoans,
+    oldLoansSchedule,
     outstandingLoans,
     fullyPaidLoans,
     overdueLoans,
@@ -215,6 +251,8 @@ export default async function ReportsPage({ searchParams }) {
   ] = await Promise.all([
     db.office.findMany({ orderBy: { name: "asc" } }),
     db.employee.findMany({ orderBy: { fullName: "asc" } }),
+    unpaidSchedulePromise,
+    oldLoansSchedulePromise,
     outstandingPromise,
     fullyPaidPromise,
     overduePromise,
@@ -235,7 +273,125 @@ export default async function ReportsPage({ searchParams }) {
   let ledgerEmployee = null;
   let ledgerSummary = {};
 
-  if (reportType === "outstanding") {
+  if (reportType === "unpaid_schedule") {
+    // 1. Map New Ticket Loans (Created by Agent)
+    const newTicketItems = unpaidScheduleLoans.map((l) => {
+      const latestPayment = l.payments && l.payments.length > 0 ? l.payments[0] : null;
+      const totalPaid = l.payments ? l.payments.reduce((sum, p) => sum + (p.amountPaid || 0), 0) : 0;
+      const totalPenalty = l.payments ? l.payments.reduce((sum, p) => sum + (p.penaltyAmount || 0), 0) : 0;
+      const dr = l.booking?.ticketCost || 0;
+      const markup = l.booking?.serviceFee || 0;
+      const baggage = l.booking?.baggageFee || 0;
+      const insurance = l.booking?.insuranceFee || 0;
+      const totalTicket = dr + markup + baggage + insurance;
+      const dateObj = l.booking?.travelDate ? new Date(l.booking.travelDate) : new Date(l.createdAt);
+
+      return {
+        id: l.id,
+        source: "NEW_TICKET",
+        sourceLabel: "🎫 Ticket Loan",
+        date: dateObj,
+        dateStr: dateObj.toLocaleDateString("en-US"),
+        month: dateObj.getMonth() + 1,
+        year: dateObj.getFullYear(),
+        checkNumber: l.booking?.checkNumber || "—",
+        payee: (l.booking?.employee?.fullName || "—") + (l.booking?.passengerName ? ` (${l.booking.passengerName})` : ""),
+        dr,
+        markup,
+        totalTicket,
+        paymentDateStr: latestPayment?.paymentDate ? new Date(latestPayment.paymentDate).toLocaleDateString("en-US") : "—",
+        orNumber: latestPayment?.receiptNumber || "—",
+        penalty: totalPenalty,
+        insurance,
+        insuranceIncome: 0,
+        markupPayment: markup,
+        baggage,
+        ticketPurchased: latestPayment?.ticketPurchased || (totalPaid > 0 ? dr : 0),
+        totalPaid,
+        unpaidBalance: l.remainingBalance || 0,
+      };
+    });
+
+    // 2. Map Old Loans (Encoded by Bookkeeper)
+    const oldLoanItems = oldLoansSchedule.map((ol) => {
+      const latestPayment = ol.payments && ol.payments.length > 0 ? ol.payments[0] : null;
+      const totalPaid = ol.payments ? ol.payments.reduce((sum, p) => sum + (p.amount || 0), 0) : 0;
+      const dr = ol.estimatedAmount || 0;
+      const dateObj = ol.dateSince ? new Date(ol.dateSince) : new Date(ol.createdAt);
+      const remaining = Math.max(0, dr - totalPaid);
+
+      return {
+        id: ol.id,
+        source: "OLD_LOAN",
+        sourceLabel: "📚 Old Loan (Legacy)",
+        date: dateObj,
+        dateStr: dateObj.toLocaleDateString("en-US"),
+        month: dateObj.getMonth() + 1,
+        year: dateObj.getFullYear(),
+        checkNumber: "OLD-BAL",
+        payee: ol.employee?.fullName || "—",
+        dr,
+        markup: 0,
+        totalTicket: dr,
+        paymentDateStr: latestPayment?.createdAt ? new Date(latestPayment.createdAt).toLocaleDateString("en-US") : "—",
+        orNumber: latestPayment?.receiptNumber || "—",
+        penalty: 0,
+        insurance: 0,
+        insuranceIncome: 0,
+        markupPayment: 0,
+        baggage: 0,
+        ticketPurchased: totalPaid,
+        totalPaid,
+        unpaidBalance: remaining,
+      };
+    });
+
+    // 3. Combine New Ticket & Old Loans
+    let combined = [...newTicketItems, ...oldLoanItems];
+
+    // Filter by Source (ALL, NEW_TICKET, OLD_LOAN)
+    if (sourceFilter === "NEW_TICKET") {
+      combined = combined.filter((i) => i.source === "NEW_TICKET");
+    } else if (sourceFilter === "OLD_LOAN") {
+      combined = combined.filter((i) => i.source === "OLD_LOAN");
+    }
+
+    // Filter by Year
+    if (yearFilter) {
+      combined = combined.filter((i) => i.year === parseInt(yearFilter));
+    }
+
+    // Filter by Month
+    if (monthFilter) {
+      combined = combined.filter((i) => i.month === parseInt(monthFilter));
+    }
+
+    // Sort by Date
+    combined.sort((a, b) => {
+      if (sortOrder === "asc") return a.date.getTime() - b.date.getTime();
+      return b.date.getTime() - a.date.getTime();
+    });
+
+    reportData = combined;
+    exportData = combined.map((item) => ({
+      "DATE": item.dateStr,
+      "CHECK NO": item.checkNumber,
+      "PAYEE": item.payee,
+      "DR": item.dr,
+      "MARK UP": item.markup,
+      "TOTAL AMOUNT OF TICKET": item.totalTicket,
+      "DATE PAYMENT": item.paymentDateStr,
+      "OR NO.": item.orNumber,
+      "PENALTY": item.penalty,
+      "Insurance for VIA": item.insurance,
+      "Insurance Income": 0,
+      "MARK UP (Payment)": item.markupPayment,
+      "Baggage": item.baggage,
+      "Ticket Purchased": item.ticketPurchased,
+      "TOTAL AMOUNT": item.totalPaid,
+      "UNPAID BALANCE": item.unpaidBalance,
+    }));
+  } else if (reportType === "outstanding") {
     const loans = outstandingLoans;
 
     reportData = loans;
@@ -597,13 +753,19 @@ export default async function ReportsPage({ searchParams }) {
     };
   }
 
-  // Define tab navigation styling helper
-  const getTabClass = (tab) => {
-    const base = "px-4 py-2.5 rounded-xl text-xs font-black border transition-all cursor-pointer text-center";
-    return reportType === tab
-      ? `${base} bg-primary text-white border-primary shadow-sm`
-      : `${base} bg-white text-slate-600 hover:text-primary hover:bg-slate-50 border-slate-200`;
-  };
+  // Define report tabs list
+  const reportTabs = [
+    { key: "unpaid_schedule", label: "Schedule of Unpaid Tickets" },
+    { key: "outstanding", label: "Outstanding" },
+    { key: "fullypaid", label: "Fully Paid" },
+    { key: "overdue", label: "Overdue" },
+    { key: "collections", label: "Collections" },
+    { key: "profit", label: "Coop Profit" },
+    { key: "aging", label: "Aging Buckets" },
+    { key: "inactive", label: "Inactive Borrowers" },
+    { key: "ledger", label: "Employee Ledger" },
+    { key: "fee_breakdown", label: "Fee Breakdown" },
+  ];
 
   return (
     <AppLayout user={session}>
@@ -612,7 +774,7 @@ export default async function ReportsPage({ searchParams }) {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-black text-primary">PADEMCO Financial Reports</h1>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 font-medium mt-0.5">
               Generate, print, and export flight bookings, collections, aging receivables, and employee ledgers.
             </p>
           </div>
@@ -629,18 +791,34 @@ export default async function ReportsPage({ searchParams }) {
           </div>
         </div>
 
-        {/* 1. Filtering bar (no-print) */}
-        <div className="no-print bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-          <form className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+        {/* 1. Ultra-Compact Single-Row Filtering Bar (no-print) */}
+        <div className="no-print bg-white px-4 py-3 rounded-2xl border border-slate-200 shadow-sm">
+          <form className="flex flex-wrap items-center gap-3 text-xs">
             <input type="hidden" name="type" value={reportType} />
 
-            {/* Office dropdown */}
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Office / Division</label>
+            {/* Source Category (Only for unpaid_schedule) */}
+            {reportType === "unpaid_schedule" && (
+              <div className="flex items-center gap-1.5 min-w-[170px] flex-1">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-tight whitespace-nowrap">Category:</label>
+                <select
+                  name="source"
+                  defaultValue={sourceFilter}
+                  className="w-full rounded-xl border border-slate-300 px-2.5 py-1.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-xs font-bold bg-white"
+                >
+                  <option value="ALL">All Loans</option>
+                  <option value="NEW_TICKET">New Tickets Only</option>
+                  <option value="OLD_LOAN">Old Loans Only</option>
+                </select>
+              </div>
+            )}
+
+            {/* Office Filter */}
+            <div className="flex items-center gap-1.5 min-w-[150px] flex-1">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-tight whitespace-nowrap">Office:</label>
               <select
                 name="office"
                 defaultValue={officeFilter}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-xs transition-all bg-white font-medium"
+                className="w-full rounded-xl border border-slate-300 px-2.5 py-1.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-xs font-medium bg-white"
               >
                 <option value="">All Offices</option>
                 {offices.map((o) => (
@@ -651,13 +829,13 @@ export default async function ReportsPage({ searchParams }) {
               </select>
             </div>
 
-            {/* Employee dropdown */}
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Employee Selector</label>
+            {/* Employee Filter */}
+            <div className="flex items-center gap-1.5 min-w-[160px] flex-1">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-tight whitespace-nowrap">Employee:</label>
               <select
                 name="employee"
                 defaultValue={employeeFilter}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-xs transition-all bg-white font-medium"
+                className="w-full rounded-xl border border-slate-300 px-2.5 py-1.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-xs font-medium bg-white"
               >
                 <option value="">All Employees</option>
                 {allEmployees.map((e) => (
@@ -668,37 +846,95 @@ export default async function ReportsPage({ searchParams }) {
               </select>
             </div>
 
-            {/* Date range inputs */}
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">From Date</label>
-              <input
-                type="date"
-                name="from"
-                defaultValue={fromDateStr}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-xs transition-all bg-white font-mono"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">To Date</label>
-              <input
-                type="date"
-                name="to"
-                defaultValue={toDateStr}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-xs transition-all bg-white font-mono"
-              />
+            {/* Month / From Date */}
+            {reportType === "unpaid_schedule" ? (
+              <div className="flex items-center gap-1.5 w-[130px]">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-tight whitespace-nowrap">Month:</label>
+                <select
+                  name="month"
+                  defaultValue={monthFilter}
+                  className="w-full rounded-xl border border-slate-300 px-2 py-1.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-xs font-medium bg-white"
+                >
+                  <option value="">All Months</option>
+                  <option value="1">Jan</option>
+                  <option value="2">Feb</option>
+                  <option value="3">Mar</option>
+                  <option value="4">Apr</option>
+                  <option value="5">May</option>
+                  <option value="6">Jun</option>
+                  <option value="7">Jul</option>
+                  <option value="8">Aug</option>
+                  <option value="9">Sep</option>
+                  <option value="10">Oct</option>
+                  <option value="11">Nov</option>
+                  <option value="12">Dec</option>
+                </select>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 w-[135px]">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-tight whitespace-nowrap">From:</label>
+                <input
+                  type="date"
+                  name="from"
+                  defaultValue={fromDateStr}
+                  className="w-full rounded-xl border border-slate-300 px-2 py-1.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-xs transition-all bg-white font-mono"
+                />
+              </div>
+            )}
+
+            {/* Year / To Date */}
+            {reportType === "unpaid_schedule" ? (
+              <div className="flex items-center gap-1.5 w-[115px]">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-tight whitespace-nowrap">Year:</label>
+                <select
+                  name="year"
+                  defaultValue={yearFilter}
+                  className="w-full rounded-xl border border-slate-300 px-2 py-1.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-xs font-medium bg-white"
+                >
+                  <option value="">All Years</option>
+                  <option value="2026">2026</option>
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                  <option value="2023">2023</option>
+                  <option value="2022">2022</option>
+                </select>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 w-[135px]">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-tight whitespace-nowrap">To:</label>
+                <input
+                  type="date"
+                  name="to"
+                  defaultValue={toDateStr}
+                  className="w-full rounded-xl border border-slate-300 px-2 py-1.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-xs transition-all bg-white font-mono"
+                />
+              </div>
+            )}
+
+            {/* Sort Order */}
+            <div className="flex items-center gap-1.5 w-[125px]">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-tight whitespace-nowrap">Sort:</label>
+              <select
+                name="sort"
+                defaultValue={sortOrder}
+                className="w-full rounded-xl border border-slate-300 px-2 py-1.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-xs font-medium bg-white"
+              >
+                <option value="desc">Newest</option>
+                <option value="asc">Oldest</option>
+              </select>
             </div>
 
-            {/* Filter buttons */}
-            <div className="flex items-end gap-2">
+            {/* Actions */}
+            <div className="flex items-center gap-1.5 ml-auto">
               <button
                 type="submit"
-                className="w-full bg-primary hover:bg-primary-hover text-white py-2 rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+                className="bg-primary hover:bg-primary-hover text-white py-1.5 px-3.5 rounded-xl text-xs font-black shadow-sm transition-all cursor-pointer whitespace-nowrap"
               >
-                Apply Filters
+                Apply
               </button>
               <a
                 href={`/reports?type=${reportType}`}
-                className="w-2/3 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 py-2 rounded-xl text-xs font-bold transition-all text-center cursor-pointer"
+                className="py-1.5 px-3 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all text-center cursor-pointer whitespace-nowrap"
               >
                 Reset
               </a>
@@ -706,17 +942,24 @@ export default async function ReportsPage({ searchParams }) {
           </form>
         </div>
 
-        {/* 2. Report Type Selector tabs (no-print) */}
-        <div className="no-print grid grid-cols-2 sm:grid-cols-5 md:grid-cols-9 gap-2">
-          <Link href="/reports?type=outstanding" className={getTabClass("outstanding")}>Outstanding</Link>
-          <Link href="/reports?type=fullypaid" className={getTabClass("fullypaid")}>Fully Paid</Link>
-          <Link href="/reports?type=overdue" className={getTabClass("overdue")}>Overdue</Link>
-          <Link href="/reports?type=collections" className={getTabClass("collections")}>Collections</Link>
-          <Link href="/reports?type=profit" className={getTabClass("profit")}>Coop Profit</Link>
-          <Link href="/reports?type=aging" className={getTabClass("aging")}>Aging buckets</Link>
-          <Link href="/reports?type=inactive" className={getTabClass("inactive")}>Inactive Emps</Link>
-          <Link href="/reports?type=ledger" className={getTabClass("ledger")}>Employee Ledger</Link>
-          <Link href="/reports?type=fee_breakdown" className={getTabClass("fee_breakdown")}>Fee Breakdown</Link>
+        {/* 2. Sleek Segmented Report Tab Controls (No Emojis / Logos) */}
+        <div className="no-print bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/80 flex items-center gap-1.5 overflow-x-auto shadow-inner select-none scrollbar-thin">
+          {reportTabs.map((tab) => {
+            const isActive = reportType === tab.key;
+            return (
+              <Link
+                key={tab.key}
+                href={`/reports?type=${tab.key}`}
+                className={`px-4 py-2.5 rounded-xl text-xs transition-all whitespace-nowrap cursor-pointer text-center ${
+                  isActive
+                    ? "bg-primary text-white font-black shadow-md shadow-primary/20 scale-[1.01]"
+                    : "bg-white text-slate-600 hover:text-slate-900 hover:bg-white/80 font-bold border border-slate-200/60 shadow-2xs"
+                }`}
+              >
+                {tab.label}
+              </Link>
+            );
+          })}
         </div>
 
         {/* 3. REPORT CONTENTS DISPLAY */}
@@ -731,12 +974,12 @@ export default async function ReportsPage({ searchParams }) {
             </p>
           </div>
 
-          {/* Table headers */}
-          <div className="px-6 py-5 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between no-print">
-            <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-              {reportType.replace(/^\w/, (c) => c.toUpperCase())} Report Data
+          {/* Clean Human-Readable Table Header Banner */}
+          <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between no-print">
+            <h2 className="text-sm font-black text-slate-800 flex items-center gap-2">
+              {reportTabs.find((t) => t.key === reportType)?.label || "Financial Report"}
             </h2>
-            <span className="text-xs font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">
+            <span className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1 rounded-lg shadow-2xs">
               {reportData.length} records found
             </span>
           </div>
