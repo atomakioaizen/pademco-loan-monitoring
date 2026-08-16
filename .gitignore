@@ -24,8 +24,8 @@
 .DS_Store
 *.pem
 
-# SQLite local database (never commit)
-dev.db
+# SQLite local database (track dev.db for Vercel deployment)
+!prisma/dev.db
 dev.db-journal
 dev.db-wal
 

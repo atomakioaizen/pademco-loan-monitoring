@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
+  outputFileTracingIncludes: {
+    '/*': ['./prisma/dev.db', './prisma/**/*'],
+  },
 };
 
 export default nextConfig;
