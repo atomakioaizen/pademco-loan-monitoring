@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate && prisma db push --accept-data-loss && node prisma/seed.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
