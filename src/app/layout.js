@@ -5,6 +5,12 @@ import { unstable_cache } from "next/cache";
 export const metadata = {
   title: "PADEMCO - DENR Airline Ticket Loan Monitoring System",
   description: "Web-based system for tracking airline ticket loans, installment payments, and financial reports for DENR Camarines Norte employees.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "PADEMCO Loan",
+  },
 };
 
 export const dynamic = "force-dynamic";
