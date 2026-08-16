@@ -1,8 +1,9 @@
 {
-  "name": "PADEMCO Loan",
+  "name": "PADEMCO Loan Monitoring System",
   "short_name": "PADEMCO",
-  "description": "PADEMCO Multi-Purpose Cooperative Flight Ticket Loans & Account Portal",
+  "description": "PADEMCO Multi-Purpose Cooperative Flight Ticket Loans & Account Portal for DENR Employees",
   "start_url": "/",
+  "id": "/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#1e3a8a",
