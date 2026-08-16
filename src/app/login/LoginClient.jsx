@@ -227,47 +227,28 @@ export default function LoginClient({ orgAddress }) {
             </div>
           </form>
 
-          {/* Prominent Install App Section at Bottom of Form */}
+          {/* Unconditionally Visible Install App Section */}
           <div className="pt-5 border-t border-slate-100 mt-6 text-center space-y-2">
-            {isInstalled ? (
-              <div className="flex items-center justify-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 px-4 py-3 rounded-xl border border-emerald-200">
-                <svg
-                  className="w-4 h-4 text-emerald-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                <span>PADEMCO App Installed on Device</span>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={handleInstallClick}
-                className="w-full flex items-center justify-center gap-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold px-4 py-3.5 rounded-xl shadow-md transition-all text-sm cursor-pointer hover:shadow-lg active:scale-98"
+            <button
+              type="button"
+              onClick={handleInstallClick}
+              className="w-full flex items-center justify-center gap-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold px-4 py-3.5 rounded-xl shadow-md transition-all text-sm cursor-pointer hover:shadow-lg active:scale-98"
+            >
+              <svg
+                className="w-5 h-5 text-white animate-bounce"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
-                <svg
-                  className="w-5 h-5 text-white animate-bounce"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                  />
-                </svg>
-                <span>📱 Install PADEMCO Mobile App</span>
-              </button>
-            )}
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
+              </svg>
+              <span>📱 Install PADEMCO Mobile App</span>
+            </button>
             <p className="text-[11px] text-slate-400">
               Install directly on your phone for 1-tap offline access.
             </p>
