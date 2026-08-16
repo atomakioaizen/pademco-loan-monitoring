@@ -1,0 +1,10 @@
+{
+  "appId": "com.pademco.loaner",
+  "appName": "PADEMCO Loan",
+  "webDir": "public",
+  "bundledWebRuntime": false,
+  "server": {
+    "url": "https://pademco-loan-monitoring.vercel.app/",
+    "cleartext": true
+  }
+}

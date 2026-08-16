@@ -28,6 +28,11 @@
 dev.db
 dev.db-journal
 dev.db-wal
+
+# Android build artifacts
+/android/app/build
+/android/.gradle
+/android/build
 dev.db-shm
 
 # debug
