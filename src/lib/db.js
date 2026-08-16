@@ -11,11 +11,9 @@ function createPrismaClient() {
 
   if (process.env.VERCEL) {
     const tmpPath = path.join("/tmp", "dev.db");
-    if (!fs.existsSync(tmpPath)) {
+    if (!fs.existsSync(tmpPath) && fs.existsSync(dbPath)) {
       try {
-        if (fs.existsSync(dbPath)) {
-          fs.copyFileSync(dbPath, tmpPath);
-        }
+        fs.copyFileSync(dbPath, tmpPath);
       } catch (e) {
         console.warn("Could not copy sqlite db to /tmp:", e);
       }
@@ -25,12 +23,16 @@ function createPrismaClient() {
     }
   }
 
-  const sqlite = new Database(dbPath);
-  const adapter = new PrismaBetterSqlite3(sqlite);
-  return new PrismaClient({
-    adapter,
-    log: ["error"],
-  });
+  try {
+    const sqlite = new Database(dbPath);
+    const adapter = new PrismaBetterSqlite3(sqlite);
+    return new PrismaClient({
+      adapter,
+      log: ["error"],
+    });
+  } catch (e) {
+    return new PrismaClient({ log: ["error"] });
+  }
 }
 
 export const db =
