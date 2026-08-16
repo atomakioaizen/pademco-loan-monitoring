@@ -4,19 +4,21 @@
   "description": "PADEMCO Multi-Purpose Cooperative Flight Ticket Loans & Account Portal for DENR Employees",
   "start_url": "/",
   "id": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#1e3a8a",
   "orientation": "portrait",
+  "categories": ["finance", "business"],
   "icons": [
     {
-      "src": "/icon.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

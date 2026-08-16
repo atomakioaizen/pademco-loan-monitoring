@@ -28,6 +28,9 @@ async function main() {
 
   // ─── STEP 1: WIPE ALL TRANSACTION & PROFILE DATA ──────────────────────────
   console.log("🗑️  Wiping transaction & employee data...");
+  await prisma.oldLoanPayment.deleteMany({});
+  await prisma.oldLoanRequest.deleteMany({});
+  await prisma.oldLoan.deleteMany({});
   await prisma.agentCommissionPayment.deleteMany({});
   await prisma.auditLog.deleteMany({});
   await prisma.payment.deleteMany({});
