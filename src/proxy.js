@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-// Simple Edge-compatible base64url JSON parser
+// Edge-compatible base64url JSON parser
 function parseTokenPayload(token) {
   try {
     if (!token) return null;
@@ -19,12 +19,14 @@ function parseTokenPayload(token) {
 
 export function proxy(request) {
   const { pathname } = request.nextUrl;
-  
-  // Public files, static folders, api/auth paths
+
+  // Public files, static folders, api/auth paths, PWA manifest, service worker
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/auth") ||
-    pathname === "/favicon.ico"
+    pathname === "/favicon.ico" ||
+    pathname === "/manifest.json" ||
+    pathname === "/sw.js"
   ) {
     return NextResponse.next();
   }
@@ -46,7 +48,7 @@ export function proxy(request) {
 
   // Role-based authorization checks
   if (user) {
-    // 1. Settings & User Management: ADMIN full access, BOOKKEEPER limited (create VIEWER only)
+    // 1. Settings & User Management: ADMIN full access, BOOKKEEPER limited
     if (
       (pathname.startsWith("/settings") || pathname.startsWith("/users")) &&
       user.role !== "ADMIN" && user.role !== "BOOKKEEPER"
@@ -61,13 +63,12 @@ export function proxy(request) {
       return NextResponse.redirect(homeUrl);
     }
 
-    // 3. Bookings, Payments, Offices, Airlines, Audit, Employees: ADMIN, CASHIER, AGENT, BOOKKEEPER — not VIEWER
+    // 3. Staff-only routes
     const staffOnlyRoutes = ["/payments", "/bookings", "/offices", "/airlines", "/employees", "/audit", "/bookkeeper", "/commissions"];
     if (
       staffOnlyRoutes.some((route) => pathname.startsWith(route)) &&
       user.role === "VIEWER"
     ) {
-      // VIEWER can still print their own payment receipts
       if (pathname.startsWith("/payments/receipt/")) {
         return NextResponse.next();
       }
@@ -81,13 +82,6 @@ export function proxy(request) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api/auth (auth APIs)
-     * - _next (Next.js static assets & prefetch chunks)
-     * - static (public static assets)
-     * - favicon.ico, logo files, etc.
-     */
-    "/((?!api/auth|_next/|static/|[\\w-]+\\.\\w+).*)",
+    "/((?!api/auth|_next/|static/|manifest.json|sw.js|[\\w-]+\\.\\w+).*)",
   ],
 };
