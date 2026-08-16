@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { loginAction } from "./actions";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -11,7 +11,52 @@ export default function LoginClient({ orgAddress }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isNavigating, setIsNavigating] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (
+        window.matchMedia("(display-mode: standalone)").matches ||
+        window.navigator.standalone
+      ) {
+        setIsInstalled(true);
+      }
+
+      const handleBeforeInstallPrompt = (e) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+      };
+
+      const handleAppInstalled = () => {
+        setIsInstalled(true);
+        setDeferredPrompt(null);
+      };
+
+      window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.addEventListener("appinstalled", handleAppInstalled);
+
+      return () => {
+        window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+        window.removeEventListener("appinstalled", handleAppInstalled);
+      };
+    }
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const choiceResult = await deferredPrompt.userChoice;
+      if (choiceResult.outcome === "accepted") {
+        setIsInstalled(true);
+      }
+      setDeferredPrompt(null);
+    } else {
+      setShowInstructions(true);
+    }
+  };
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -29,13 +74,8 @@ export default function LoginClient({ orgAddress }) {
     });
   };
 
-  const handleQuickLogin = (user, pass) => {
-    setUsername(user);
-    setPassword(pass);
-  };
-
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 sm:px-6 lg:px-8 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/10 via-slate-50 to-slate-50">
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 sm:px-6 lg:px-8 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/10 via-slate-50 to-slate-50 relative">
       <div className="w-full max-w-md space-y-8">
         {/* Header Branding */}
         <div className="text-center">
@@ -61,9 +101,7 @@ export default function LoginClient({ orgAddress }) {
           <p className="mt-2 text-sm font-semibold text-success uppercase tracking-wider">
             DENR Employee Airline Ticket Loan System
           </p>
-          <p className="mt-1 text-xs text-slate-500">
-            {orgAddress}
-          </p>
+          <p className="mt-1 text-xs text-slate-500">{orgAddress}</p>
         </div>
 
         {/* Login Card */}
@@ -165,7 +203,11 @@ export default function LoginClient({ orgAddress }) {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       />
                     </svg>
-                    <span>{isNavigating ? "Opening Portal Dashboard..." : "Verifying Credentials..."}</span>
+                    <span>
+                      {isNavigating
+                        ? "Opening Portal Dashboard..."
+                        : "Verifying Credentials..."}
+                    </span>
                   </div>
                 ) : (
                   "Sign In to Portal"
@@ -185,8 +227,53 @@ export default function LoginClient({ orgAddress }) {
             </div>
           </form>
 
-          {/* Production Note */}
-          <div className="mt-6 text-center text-xs text-slate-400">
+          {/* Prominent Install App Section at Bottom of Form */}
+          <div className="pt-5 border-t border-slate-100 mt-6 text-center space-y-2">
+            {isInstalled ? (
+              <div className="flex items-center justify-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 px-4 py-3 rounded-xl border border-emerald-200">
+                <svg
+                  className="w-4 h-4 text-emerald-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                <span>PADEMCO App Installed on Device</span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleInstallClick}
+                className="w-full flex items-center justify-center gap-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold px-4 py-3.5 rounded-xl shadow-md transition-all text-sm cursor-pointer hover:shadow-lg active:scale-98"
+              >
+                <svg
+                  className="w-5 h-5 text-white animate-bounce"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+                <span>📱 Install PADEMCO Mobile App</span>
+              </button>
+            )}
+            <p className="text-[11px] text-slate-400">
+              Install directly on your phone for 1-tap offline access.
+            </p>
+          </div>
+
+          <div className="mt-4 text-center text-[11px] text-slate-400">
             Secure login. Unauthorized access is strictly prohibited.
           </div>
         </div>
@@ -197,6 +284,35 @@ export default function LoginClient({ orgAddress }) {
           All rights reserved.
         </div>
       </div>
+
+      {/* Interactive Modal Instructions if Install Prompt isn't triggered automatically */}
+      {showInstructions && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl border border-slate-200 text-center">
+            <div className="mx-auto w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-2xl">
+              📱
+            </div>
+            <h3 className="text-lg font-black text-slate-800">
+              Install PADEMCO Mobile App
+            </h3>
+            <div className="text-xs text-slate-600 leading-relaxed text-left bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+              <p>
+                <strong>Chrome / Android:</strong> Tap the browser menu (⋮) at top right ➔ select <strong>"Add to Home screen"</strong> or <strong>"Install app"</strong>.
+              </p>
+              <p>
+                <strong>Safari / iPhone:</strong> Tap the Share button (⎋) at the bottom ➔ select <strong>"Add to Home Screen"</strong>.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowInstructions(false)}
+              className="w-full bg-slate-900 text-white text-xs font-bold py-3 rounded-xl hover:bg-slate-800 cursor-pointer"
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
