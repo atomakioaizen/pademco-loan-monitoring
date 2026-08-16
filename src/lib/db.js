@@ -9,10 +9,19 @@ const globalForPrisma = globalThis;
 function createPrismaClient() {
   let dbPath = path.join(process.cwd(), "prisma", "dev.db");
 
-  if (!fs.existsSync(dbPath)) {
-    const altPath = path.join("/tmp", "dev.db");
-    if (fs.existsSync(altPath)) {
-      dbPath = altPath;
+  if (process.env.VERCEL) {
+    const tmpPath = path.join("/tmp", "dev.db");
+    if (!fs.existsSync(tmpPath)) {
+      try {
+        if (fs.existsSync(dbPath)) {
+          fs.copyFileSync(dbPath, tmpPath);
+        }
+      } catch (e) {
+        console.warn("Could not copy sqlite db to /tmp:", e);
+      }
+    }
+    if (fs.existsSync(tmpPath)) {
+      dbPath = tmpPath;
     }
   }
 
