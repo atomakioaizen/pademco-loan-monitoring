@@ -171,12 +171,12 @@ export default async function PaymentsPage() {
           const ey = today.getFullYear(), em = today.getMonth(), ed = today.getDate();
           let monthsDelayed = (ey - sy) * 12 + (em - sm);
           if (ed > sd) monthsDelayed += 1;
-          monthsDelayed = Math.max(1, monthsDelayed);
-          const penalty = loan.remainingBalance * 0.01 * monthsDelayed;
-          expectedAmount = loan.remainingBalance + penalty;
+          const rate = (loan.interestRate != null && loan.interestRate > 0) ? loan.interestRate : parseFloat(settings.interest_rate || "1");
+          const penalty = loan.remainingBalance * (rate / 100) * monthsDelayed;
+          expectedAmount = Math.round((loan.remainingBalance + penalty) * 100) / 100;
         }
 
-        if (amountPaid < expectedAmount) {
+        if (Math.round(amountPaid * 100) < Math.round(expectedAmount * 100)) {
           throw new Error(
             `Payment of ₱${amountPaid.toLocaleString("en-US", { minimumFractionDigits: 2 })} is less than the required full settlement of ₱${expectedAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}.`
           );

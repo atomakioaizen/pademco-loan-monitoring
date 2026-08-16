@@ -21,7 +21,7 @@ export default async function BookkeeperPage() {
   if (session.role !== "BOOKKEEPER" && session.role !== "ADMIN") redirect("/");
 
   // Fetch all required data in parallel
-  const [employees, oldLoans, requests, activeLoans] = await Promise.all([
+  const [employees, oldLoans, requests, activeLoans, approvalAuditLogs] = await Promise.all([
     db.employee.findMany({
       where: {
         status: "ACTIVE",
@@ -76,6 +76,14 @@ export default async function BookkeeperPage() {
       },
       orderBy: { createdAt: "desc" },
     }),
+    db.auditLog.findMany({
+      where: {
+        resource: { in: ["BOOKING", "LOAN"] },
+        action: { in: ["CREATE", "UPDATE", "DELETE"] },
+      },
+      include: { user: true },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
   return (
@@ -95,6 +103,7 @@ export default async function BookkeeperPage() {
           oldLoans={oldLoans}
           requests={requests}
           activeLoans={activeLoans}
+          approvalAuditLogs={approvalAuditLogs}
           encodeOldLoanAction={encodeOldLoanAction}
           deleteOldLoanAction={deleteOldLoanAction}
           reviewRequestAction={reviewRequestAction}

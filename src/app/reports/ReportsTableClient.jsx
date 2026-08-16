@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { calculateAccruedPenalty, getMonthsDelayed } from "@/lib/penalty";
 
 export default function ReportsTableClient({
   reportData = [],
@@ -150,6 +151,10 @@ export default function ReportsTableClient({
     if (reportType === "overdue") {
       return dataToRender.map((l) => {
         const daysOverdue = Math.max(0, Math.floor((Date.now() - new Date(l.dueDate).getTime()) / (1000 * 60 * 60 * 24)));
+        const monthsDelayed = getMonthsDelayed(l.dueDate);
+        const penalty = calculateAccruedPenalty(l);
+        const requiredSettlement = Math.round(((l.remainingBalance || 0) + penalty) * 100) / 100;
+
         return (
           <tr key={l.id} className="hover:bg-rose-50/50 transition-colors">
             <td className="px-6 py-4 font-bold font-mono text-slate-700 text-xs">{l.booking.referenceNumber}</td>
@@ -163,9 +168,13 @@ export default function ReportsTableClient({
             </td>
             <td className="px-6 py-4 text-slate-600 font-medium">{l.booking.employee.office.name}</td>
             <td className="px-6 py-4 font-mono text-xs text-slate-500">{new Date(l.dueDate).toLocaleDateString()}</td>
-            <td className="px-6 py-4 font-bold text-danger text-xs font-mono">{daysOverdue} days</td>
-            <td className="px-6 py-4 font-mono">₱{l.totalAmountPayable.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
-            <td className="px-6 py-4 font-mono font-bold text-danger">₱{l.remainingBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+            <td className="px-6 py-4 font-bold text-danger text-xs font-mono">
+              {monthsDelayed} Month(s) Late
+              <span className="block text-[10px] text-slate-400 font-normal">({daysOverdue} days)</span>
+            </td>
+            <td className="px-6 py-4 font-mono">₱{l.remainingBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+            <td className="px-6 py-4 font-mono text-rose-700 font-bold">₱{penalty.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+            <td className="px-6 py-4 font-mono font-black text-rose-900">₱{requiredSettlement.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
           </tr>
         );
       });
@@ -327,9 +336,10 @@ export default function ReportsTableClient({
           <th scope="col" className="px-6 py-3.5">Employee Name</th>
           <th scope="col" className="px-6 py-3.5">Office</th>
           <th scope="col" className="px-6 py-3.5">Original Due Date</th>
-          <th scope="col" className="px-6 py-3.5">Days Overdue</th>
-          <th scope="col" className="px-6 py-3.5">Original Cost</th>
-          <th scope="col" className="px-6 py-3.5">Outstanding Balance</th>
+          <th scope="col" className="px-6 py-3.5">Duration Delayed</th>
+          <th scope="col" className="px-6 py-3.5">Principal Balance</th>
+          <th scope="col" className="px-6 py-3.5 text-rose-700">Accrued Penalty (1%/mo)</th>
+          <th scope="col" className="px-6 py-3.5 text-rose-900 font-black">Full Settlement Required</th>
         </tr>
       );
     }

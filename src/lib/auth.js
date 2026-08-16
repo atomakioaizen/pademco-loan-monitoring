@@ -1,8 +1,8 @@
 import crypto from "crypto";
 import { cookies } from "next/headers";
 
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) console.warn("WARNING: JWT_SECRET environment variable is not set. Sessions will not work.");
+const JWT_SECRET = process.env.JWT_SECRET || "pademco-default-secret-key-change-in-prod";
+if (!process.env.JWT_SECRET) console.warn("WARNING: JWT_SECRET environment variable is not set. Using default fallback secret.");
 
 export function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString("hex");

@@ -6,6 +6,7 @@ import PrintButton from "@/components/PrintButton";
 import ReportsTableClient from "./ReportsTableClient";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { calculateAccruedPenalty } from "@/lib/penalty";
 
 export const dynamic = "force-dynamic";
 
@@ -248,6 +249,7 @@ export default async function ReportsPage({ searchParams }) {
     ledgerEmployeeRaw,
     ledgerBookings,
     feeBreakdownLoans,
+    sysSettingsList,
   ] = await Promise.all([
     db.office.findMany({ orderBy: { name: "asc" } }),
     db.employee.findMany({ orderBy: { fullName: "asc" } }),
@@ -264,7 +266,14 @@ export default async function ReportsPage({ searchParams }) {
     ledgerEmployeePromise,
     ledgerBookingsPromise,
     feeBreakdownPromise,
+    db.systemSetting.findMany(),
   ]);
+
+  const settingsMap = sysSettingsList.reduce((acc, curr) => {
+    acc[curr.key] = curr.value;
+    return acc;
+  }, {});
+  const interestRatePercent = parseFloat(settingsMap.interest_rate || "1");
 
   // --- Fetch Report Data based on Active Tab ---
   let reportData = [];
@@ -277,8 +286,10 @@ export default async function ReportsPage({ searchParams }) {
     // 1. Map New Ticket Loans (Created by Agent)
     const newTicketItems = unpaidScheduleLoans.map((l) => {
       const latestPayment = l.payments && l.payments.length > 0 ? l.payments[0] : null;
+      const accruedPenalty = calculateAccruedPenalty(l, interestRatePercent);
+      const paidPenalty = l.payments ? l.payments.reduce((sum, p) => sum + (p.penaltyAmount || 0), 0) : 0;
+      const totalPenalty = paidPenalty + accruedPenalty;
       const totalPaid = l.payments ? l.payments.reduce((sum, p) => sum + (p.amountPaid || 0), 0) : 0;
-      const totalPenalty = l.payments ? l.payments.reduce((sum, p) => sum + (p.penaltyAmount || 0), 0) : 0;
       const dr = l.booking?.ticketCost || 0;
       const markup = l.booking?.serviceFee || 0;
       const baggage = l.booking?.baggageFee || 0;
@@ -308,7 +319,7 @@ export default async function ReportsPage({ searchParams }) {
         baggage,
         ticketPurchased: latestPayment?.ticketPurchased || (totalPaid > 0 ? dr : 0),
         totalPaid,
-        unpaidBalance: l.remainingBalance || 0,
+        unpaidBalance: (l.remainingBalance || 0) + accruedPenalty,
       };
     });
 

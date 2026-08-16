@@ -289,6 +289,43 @@ export default function RecordPaymentForm({
               </div>
             )}
 
+            {/* Overdue Late Penalty Card */}
+            {(() => {
+              const today = new Date();
+              const dueDate = new Date(selectedLoan.dueDate);
+              const isOverdue = selectedLoan.status === "OVERDUE" || dueDate < today;
+              if (!isOverdue) return null;
+
+              const sy = dueDate.getFullYear(), sm = dueDate.getMonth(), sd = dueDate.getDate();
+              const ey = today.getFullYear(), em = today.getMonth(), ed = today.getDate();
+              let monthsDelayed = (ey - sy) * 12 + (em - sm);
+              if (ed > sd) monthsDelayed += 1;
+              monthsDelayed = Math.max(1, monthsDelayed);
+              const penalty = Math.round((selectedLoan.remainingBalance || 0) * 0.01 * monthsDelayed * 100) / 100;
+              const fullSettlement = Math.round(((selectedLoan.remainingBalance || 0) + penalty) * 100) / 100;
+
+              return (
+                <div className="mt-3 p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-900 leading-relaxed space-y-1.5 animate-fadeIn">
+                  <div className="font-extrabold flex items-center justify-between text-xs text-rose-800 uppercase tracking-wider">
+                    <span>🔴 Overdue Late Penalty Notice ({monthsDelayed} Month(s) Delayed)</span>
+                    <span className="bg-rose-200 text-rose-900 px-2 py-0.5 rounded text-[10px] font-black font-mono">
+                      +1% / month
+                    </span>
+                  </div>
+                  <div className="text-xs grid grid-cols-2 gap-2 pt-1 border-t border-rose-200/60 font-semibold">
+                    <div>
+                      <span className="text-rose-600 block text-[10px]">Accrued Penalty:</span>
+                      <strong className="text-rose-900 font-mono text-sm">₱{penalty.toLocaleString("en-US", { minimumFractionDigits: 2 })}</strong>
+                    </div>
+                    <div>
+                      <span className="text-rose-600 block text-[10px]">Required Full Settlement Total:</span>
+                      <strong className="text-rose-900 font-mono text-sm">₱{fullSettlement.toLocaleString("en-US", { minimumFractionDigits: 2 })}</strong>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Repayment Policy Card */}
             <div className="mt-3 p-3 rounded-lg border border-amber-200 bg-amber-50/50 text-amber-850 leading-relaxed">
               <div className="font-bold flex items-center gap-1">
@@ -485,9 +522,19 @@ export default function RecordPaymentForm({
         <button
           type="submit"
           disabled={loading || !selectedLoanId}
-          className="w-full bg-success hover:bg-success-hover text-white py-2.5 rounded-xl text-sm font-semibold shadow-md transition-all hover:shadow-lg cursor-pointer disabled:opacity-50 mt-4"
+          className="w-full bg-success hover:bg-success-hover text-white py-3 rounded-xl text-sm font-semibold shadow-md transition-all hover:shadow-lg cursor-pointer disabled:opacity-50 mt-4 flex items-center justify-center gap-2"
         >
-          {loading ? "Posting Payment..." : "Post Payment"}
+          {loading ? (
+            <>
+              <svg className="h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              <span>Posting Receipt & Updating Balance...</span>
+            </>
+          ) : (
+            "Post Official Receipt Payment"
+          )}
         </button>
         </div>
       </form>

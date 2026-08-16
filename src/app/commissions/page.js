@@ -131,8 +131,8 @@ export default async function CommissionsPage({ searchParams }) {
   async function markAsPaidAction(formData) {
     "use server";
     const session = await getSession();
-    if (!session || (session.role !== "ADMIN" && session.role !== "CASHIER")) {
-      throw new Error("Unauthorized");
+    if (!session || session.role !== "CASHIER") {
+      throw new Error("Unauthorized. Only Cashier can record commission payouts.");
     }
 
     const agentId = formData.get("agentId");
@@ -198,8 +198,8 @@ export default async function CommissionsPage({ searchParams }) {
   async function revertToUnpaidAction(formData) {
     "use server";
     const session = await getSession();
-    if (!session || (session.role !== "ADMIN" && session.role !== "CASHIER")) {
-      throw new Error("Unauthorized");
+    if (!session || session.role !== "CASHIER") {
+      throw new Error("Unauthorized. Only Cashier can modify payout status.");
     }
 
     const agentId = formData.get("agentId");

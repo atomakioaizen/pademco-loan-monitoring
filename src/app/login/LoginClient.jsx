@@ -10,6 +10,7 @@ export default function LoginClient({ orgAddress }) {
   const [isPending, startTransition] = useTransition();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [isNavigating, setIsNavigating] = useState(false);
   const router = useRouter();
 
   const handleSubmit = (event) => {
@@ -22,6 +23,7 @@ export default function LoginClient({ orgAddress }) {
       if (result && result.error) {
         setError(result.error);
       } else if (result && result.redirectTo) {
+        setIsNavigating(true);
         router.push(result.redirectTo);
       }
     });
@@ -139,10 +141,10 @@ export default function LoginClient({ orgAddress }) {
             <div>
               <button
                 type="submit"
-                disabled={isPending}
+                disabled={isPending || isNavigating}
                 className="group relative flex w-full justify-center rounded-xl bg-primary hover:bg-primary-hover px-4 py-3.5 text-sm font-semibold text-white shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer animate-fadeIn"
               >
-                {isPending ? (
+                {isPending || isNavigating ? (
                   <div className="flex items-center gap-2">
                     <svg
                       className="h-5 w-5 animate-spin text-white"
@@ -163,7 +165,7 @@ export default function LoginClient({ orgAddress }) {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       />
                     </svg>
-                    <span>Verifying...</span>
+                    <span>{isNavigating ? "Opening Portal Dashboard..." : "Verifying Credentials..."}</span>
                   </div>
                 ) : (
                   "Sign In to Portal"
