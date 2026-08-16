@@ -11,19 +11,37 @@ export default function LoginClient({ orgAddress }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isNavigating, setIsNavigating] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstructions, setShowInstructions] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      if (
-        window.matchMedia("(display-mode: standalone)").matches ||
-        window.navigator.standalone
-      ) {
-        setIsInstalled(true);
-      }
+      // 1. Mobile Device Check (phones & tablets)
+      const checkMobile = () => {
+        const userAgentMobile =
+          /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+            navigator.userAgent
+          );
+        const screenMobile = window.innerWidth < 768;
+        setIsMobile(userAgentMobile || screenMobile);
+      };
+
+      // 2. Standalone / Installed App Check
+      const checkInstalled = () => {
+        const isStandalone =
+          window.matchMedia("(display-mode: standalone)").matches ||
+          window.navigator.standalone ||
+          document.referrer.includes("android-app://");
+        if (isStandalone) {
+          setIsInstalled(true);
+        }
+      };
+
+      checkMobile();
+      checkInstalled();
 
       const handleBeforeInstallPrompt = (e) => {
         e.preventDefault();
@@ -227,32 +245,34 @@ export default function LoginClient({ orgAddress }) {
             </div>
           </form>
 
-          {/* Unconditionally Visible Install App Section */}
-          <div className="pt-5 border-t border-slate-100 mt-6 text-center space-y-2">
-            <button
-              type="button"
-              onClick={handleInstallClick}
-              className="w-full flex items-center justify-center gap-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold px-4 py-3.5 rounded-xl shadow-md transition-all text-sm cursor-pointer hover:shadow-lg active:scale-98"
-            >
-              <svg
-                className="w-5 h-5 text-white animate-bounce"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+          {/* Install App Section (Visible ONLY on Mobile devices when NOT yet installed) */}
+          {isMobile && !isInstalled && (
+            <div className="pt-5 border-t border-slate-100 mt-6 text-center space-y-2">
+              <button
+                type="button"
+                onClick={handleInstallClick}
+                className="w-full flex items-center justify-center gap-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold px-4 py-3.5 rounded-xl shadow-md transition-all text-sm cursor-pointer hover:shadow-lg active:scale-98"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                />
-              </svg>
-              <span>📱 Install PADEMCO Mobile App</span>
-            </button>
-            <p className="text-[11px] text-slate-400">
-              Install directly on your phone for 1-tap offline access.
-            </p>
-          </div>
+                <svg
+                  className="w-5 h-5 text-white animate-bounce"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+                <span>📱 Install PADEMCO Mobile App</span>
+              </button>
+              <p className="text-[11px] text-slate-400">
+                Install directly on your phone for 1-tap offline access.
+              </p>
+            </div>
+          )}
 
           <div className="mt-4 text-center text-[11px] text-slate-400">
             Secure login. Unauthorized access is strictly prohibited.
