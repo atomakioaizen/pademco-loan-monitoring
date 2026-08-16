@@ -39,7 +39,18 @@ const getCachedLayoutSettings = unstable_cache(
 );
 
 export default async function RootLayout({ children }) {
-  const { customColor, customLogoUrl } = await getCachedLayoutSettings();
+  let customColor = "#1e3a8a";
+  let customLogoUrl = "";
+
+  try {
+    const settings = await getCachedLayoutSettings();
+    if (settings) {
+      customColor = settings.customColor || "#1e3a8a";
+      customLogoUrl = settings.customLogoUrl || "";
+    }
+  } catch (e) {
+    console.warn("Could not fetch layout settings:", e);
+  }
 
   return (
     <html lang="en" className="h-full antialiased">

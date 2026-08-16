@@ -16,6 +16,7 @@ function createPrismaClient() {
         dbUrl.includes("localhost") || dbUrl.includes("127.0.0.1")
           ? false
           : { rejectUnauthorized: false },
+      connectionTimeoutMillis: 5000,
     });
     const adapter = new PrismaPg(pool);
     return new PrismaClient({ adapter, log: ["error"] });
@@ -23,6 +24,7 @@ function createPrismaClient() {
     console.warn("Failed to create PrismaPg adapter:", e);
     const pool = new pg.Pool({
       connectionString: "postgresql://postgres:postgres@localhost:5432/postgres",
+      connectionTimeoutMillis: 5000,
     });
     const adapter = new PrismaPg(pool);
     return new PrismaClient({ adapter, log: ["error"] });
