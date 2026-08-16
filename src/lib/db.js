@@ -1,37 +1,31 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import Database from "better-sqlite3";
-import path from "path";
-import fs from "fs";
+import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
 
 const globalForPrisma = globalThis;
 
 function createPrismaClient() {
-  let dbPath = path.join(process.cwd(), "prisma", "dev.db");
-
-  if (process.env.VERCEL) {
-    const tmpPath = path.join("/tmp", "dev.db");
-    if (!fs.existsSync(tmpPath) && fs.existsSync(dbPath)) {
-      try {
-        fs.copyFileSync(dbPath, tmpPath);
-      } catch (e) {
-        console.warn("Could not copy sqlite db to /tmp:", e);
-      }
-    }
-    if (fs.existsSync(tmpPath)) {
-      dbPath = tmpPath;
-    }
-  }
+  const dbUrl =
+    process.env.DATABASE_URL ||
+    "postgresql://postgres:postgres@localhost:5432/postgres";
 
   try {
-    const sqlite = new Database(dbPath);
-    const adapter = new PrismaBetterSqlite3(sqlite);
-    return new PrismaClient({
-      adapter,
-      log: ["error"],
+    const pool = new pg.Pool({
+      connectionString: dbUrl,
+      ssl:
+        dbUrl.includes("localhost") || dbUrl.includes("127.0.0.1")
+          ? false
+          : { rejectUnauthorized: false },
     });
+    const adapter = new PrismaPg(pool);
+    return new PrismaClient({ adapter, log: ["error"] });
   } catch (e) {
-    return new PrismaClient({ log: ["error"] });
+    console.warn("Failed to create PrismaPg adapter:", e);
+    const pool = new pg.Pool({
+      connectionString: "postgresql://postgres:postgres@localhost:5432/postgres",
+    });
+    const adapter = new PrismaPg(pool);
+    return new PrismaClient({ adapter, log: ["error"] });
   }
 }
 
