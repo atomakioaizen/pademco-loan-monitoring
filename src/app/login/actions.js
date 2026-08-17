@@ -14,9 +14,10 @@ export async function loginAction(prevState, formData) {
   }
 
   try {
-    const user = await db.user.findUnique({
-      where: { username },
-    });
+    const allUsers = await db.user.findMany();
+    const user = allUsers.find(
+      (u) => u.username.toLowerCase() === username.toLowerCase()
+    );
 
     if (!user || !verifyPassword(password, user.passwordHash)) {
       return { error: "Invalid username or password." };

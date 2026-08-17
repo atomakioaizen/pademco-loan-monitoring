@@ -8,16 +8,16 @@
 export function isSamePersonName(name1, name2) {
   if (!name1 || !name2) return false;
 
-  // Normalize: lowercase, remove commas/dots/dashes, collapse whitespace
+  // Normalize: lowercase, remove punctuation (commas/dots/dashes/quotes), collapse whitespace
   const clean1 = String(name1)
     .toLowerCase()
-    .replace(/[,.-]/g, " ")
+    .replace(/['"`,.-]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
   const clean2 = String(name2)
     .toLowerCase()
-    .replace(/[,.-]/g, " ")
+    .replace(/['"`,.-]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 

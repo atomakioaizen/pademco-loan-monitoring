@@ -119,7 +119,8 @@ export default async function EmployeesPage({ searchParams }) {
 
       // Duplicate fullName check (case-insensitive & order-independent)
       const allUsers = await db.user.findMany();
-      const duplicateName = findExistingMatchingName(fullName, allUsers, allEmployees, null, id);
+      const empUser = id ? await db.user.findUnique({ where: { employeeId: id } }) : null;
+      const duplicateName = findExistingMatchingName(fullName, allUsers, allEmployees, empUser?.id || null, id);
       if (duplicateName) {
         redirect(`/employees?tab=${id ? "active" : "create"}${id ? `&viewId=${id}` : ""}&error=${encodeURIComponent(`An account or profile for "${duplicateName}" already exists in the system.`)}`);
       }
@@ -366,7 +367,7 @@ export default async function EmployeesPage({ searchParams }) {
         </div>
 
         {/* Success / Error Banners */}
-        {successMsg && (
+        {!viewEmployee && successMsg && (
           <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 animate-fadeIn flex items-center gap-3">
             <span className="text-emerald-500 shrink-0">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -374,7 +375,7 @@ export default async function EmployeesPage({ searchParams }) {
             <p className="text-xs font-bold text-emerald-700">{successMsg}</p>
           </div>
         )}
-        {errorMsg && (
+        {!viewEmployee && errorMsg && (
           <div className="rounded-xl bg-rose-50 border border-rose-200 p-4 animate-fadeIn flex items-center gap-3">
             <span className="text-rose-500 shrink-0">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -758,6 +759,23 @@ export default async function EmployeesPage({ searchParams }) {
               <input type="hidden" name="id" value={viewEmployee.id} />
               
               <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                {/* Modal Notification Banners */}
+                {successMsg && (
+                  <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 animate-fadeIn flex items-center gap-3">
+                    <span className="text-emerald-500 shrink-0">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </span>
+                    <p className="text-xs font-bold text-emerald-700">{successMsg}</p>
+                  </div>
+                )}
+                {errorMsg && (
+                  <div className="rounded-xl bg-rose-50 border border-rose-200 p-4 animate-fadeIn flex items-center gap-3">
+                    <span className="text-rose-500 shrink-0">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </span>
+                    <p className="text-xs font-bold text-rose-700">⚠️ {errorMsg}</p>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-6">
                   {/* Personal & Employment Info */}
                   <div className="space-y-4">

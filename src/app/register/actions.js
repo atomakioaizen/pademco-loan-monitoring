@@ -16,7 +16,7 @@ const PALAWAN_OFFICES = [
 ];
 
 export async function registerAction(prevState, formData) {
-  const username = formData.get("username")?.trim();
+  const username = formData.get("username")?.trim().toLowerCase();
   const password = formData.get("password");
   const confirmPassword = formData.get("confirmPassword");
   const name = formData.get("name")?.trim();
