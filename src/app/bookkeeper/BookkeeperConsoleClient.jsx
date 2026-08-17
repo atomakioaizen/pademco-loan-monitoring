@@ -13,10 +13,11 @@ export default function BookkeeperConsoleClient({
   encodeOldLoanAction,
   deleteOldLoanAction,
   reviewRequestAction,
+  initialTab = "ENCODE",
 }) {
   const isBookkeeper = user?.role === "BOOKKEEPER";
 
-  const [activeTab, setActiveTab] = useState("ENCODE"); // "ENCODE" | "REQUESTS" | "EXISTING_LOANS" | "DECISIONS_LOG"
+  const [activeTab, setActiveTab] = useState(initialTab); // "ENCODE" | "REQUESTS" | "EXISTING_LOANS" | "DECISIONS_LOG"
   const [historySearch, setHistorySearch] = useState("");
   
   // Request Queue Sub-Filter State

@@ -15,10 +15,19 @@ export const metadata = {
   title: "Bookkeeper Console - PADEMCO",
 };
 
-export default async function BookkeeperPage() {
+export default async function BookkeeperPage({ searchParams }) {
   const session = await getSession();
   if (!session) redirect("/login");
   if (session.role !== "BOOKKEEPER" && session.role !== "ADMIN") redirect("/");
+
+  const resolvedSearchParams = await searchParams;
+  const rawTab = (resolvedSearchParams?.tab || "").toUpperCase();
+
+  let initialTab = "ENCODE";
+  if (rawTab.includes("REQUEST")) initialTab = "REQUESTS";
+  else if (rawTab.includes("OLD") || rawTab.includes("ENCODE")) initialTab = "ENCODE";
+  else if (rawTab.includes("LOAN") || rawTab.includes("EXISTING")) initialTab = "EXISTING_LOANS";
+  else if (rawTab.includes("LOG") || rawTab.includes("DECISION")) initialTab = "DECISIONS_LOG";
 
   // Fetch all required data in parallel
   const [employees, oldLoans, requests, activeLoans, approvalAuditLogs] = await Promise.all([
@@ -107,6 +116,7 @@ export default async function BookkeeperPage() {
           encodeOldLoanAction={encodeOldLoanAction}
           deleteOldLoanAction={deleteOldLoanAction}
           reviewRequestAction={reviewRequestAction}
+          initialTab={initialTab}
         />
       </div>
     </AppLayout>
