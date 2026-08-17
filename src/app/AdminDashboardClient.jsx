@@ -3,7 +3,7 @@
 import React, { useState, useTransition } from "react";
 import { approveUserAction, declineUserAction } from "./actions/adminApprovals";
 
-export default function AdminDashboardClient({ loans, payments, session, stats, pendingUsers = [], oldLoans = [] }) {
+export default function AdminDashboardClient({ loans, payments, session, stats, pendingUsers = [], oldLoans = [], pendingBookingRequests = [] }) {
   const [activeModal, setActiveModal] = useState(null); // null | 'outstanding' | 'collections' | 'profit' | 'overdue' | 'pending_registrations' | 'old_loans'
   const [searchQuery, setSearchQuery] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -185,6 +185,57 @@ export default function AdminDashboardClient({ loans, payments, session, stats, 
           </div>
         </div>
       </div>
+
+      {/* ✈️ BOOKKEEPER & ADMIN NOTIFICATION: Booking Request Queue Shortcut Banner */}
+      {(session.role === "BOOKKEEPER" || session.role === "ADMIN") && (
+        <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-amber-500/10 border-2 border-amber-400/40 rounded-3xl p-5 md:p-6 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fadeIn">
+          <div className="flex items-start gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-black text-xl shadow-lg shadow-amber-500/30 shrink-0">
+              ✈️
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black text-amber-800 uppercase tracking-widest bg-amber-100 px-3 py-0.5 rounded-full border border-amber-300">
+                  BOOKING REQUEST QUEUE
+                </span>
+                {pendingBookingRequests.length > 0 ? (
+                  <span className="text-xs font-black text-white bg-amber-600 px-2.5 py-0.5 rounded-full animate-bounce shadow-xs">
+                    {pendingBookingRequests.length} PENDING NOTIFICATION{pendingBookingRequests.length > 1 ? "S" : ""}
+                  </span>
+                ) : (
+                  <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                    ✓ QUEUE CLEARED
+                  </span>
+                )}
+              </div>
+              <h3 className="text-base font-black text-slate-900 mt-1.5">
+                {pendingBookingRequests.length > 0
+                  ? `${pendingBookingRequests.length} Borrower Booking Clearance Request${pendingBookingRequests.length > 1 ? "s" : ""} Awaiting Review`
+                  : "Booking Request Queue is Clean & Cleared"}
+              </h3>
+              <p className="text-xs text-slate-600 font-medium mt-0.5 max-w-2xl leading-relaxed">
+                {pendingBookingRequests.length > 0
+                  ? "Booking agents submitted flight clearance override requests for borrowers with old loan records. Immediate bookkeeper review is required before flight issuance."
+                  : "All flight ticket booking clearance override requests have been processed. No pending requests requiring clearance."}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <a
+              href="/bookkeeper?tab=requests"
+              className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-3 rounded-2xl text-xs font-black shadow-md hover:shadow-lg transition-all cursor-pointer"
+            >
+              <span>Review Booking Queue</span>
+              {pendingBookingRequests.length > 0 && (
+                <span className="bg-amber-400 text-slate-950 font-black px-2 py-0.5 rounded-full text-[11px]">
+                  {pendingBookingRequests.length}
+                </span>
+              )}
+              <span>&rarr;</span>
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* 📊 Primary Financial KPI Grid (4 High-Impact Stat Cards) */}
       <div className="space-y-3">
@@ -618,6 +669,28 @@ export default function AdminDashboardClient({ loans, payments, session, stats, 
               {/* BOOKKEEPER ONLY Tools */}
               {session.role === "BOOKKEEPER" && (
                 <>
+                  <a
+                    href="/bookkeeper?tab=requests"
+                    className="w-full bg-amber-50/80 hover:bg-amber-100 text-amber-950 p-3.5 rounded-2xl border border-amber-300 flex items-center justify-between transition-all cursor-pointer shadow-xs hover:shadow-md"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-lg">✈️</span>
+                      <span className="font-black text-sm">Booking Request Queue</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {pendingBookingRequests.length > 0 ? (
+                        <span className="bg-amber-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full animate-pulse">
+                          {pendingBookingRequests.length} PENDING
+                        </span>
+                      ) : (
+                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          CLEARED
+                        </span>
+                      )}
+                      <span className="text-amber-800 font-bold">&rarr;</span>
+                    </div>
+                  </a>
+
                   <a
                     href="/bookkeeper"
                     className="w-full bg-slate-50 hover:bg-slate-100 text-slate-800 p-3 rounded-2xl border border-slate-200 flex items-center justify-between transition-all cursor-pointer"

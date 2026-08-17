@@ -242,7 +242,7 @@ export default async function DashboardPage({ searchParams }) {
 
   // Render AdminDashboardClient for ADMIN, CASHIER, or AGENT roles (consists strictly of clickable stat cards)
   if (session.role === "ADMIN" || session.role === "CASHIER" || session.role === "AGENT" || session.role === "BOOKKEEPER") {
-    const [allLoans, allPayments, pendingUsers, oldLoans] = await Promise.all([
+    const [allLoans, allPayments, pendingUsers, oldLoans, pendingBookingRequests] = await Promise.all([
       db.loan.findMany({
         include: {
           booking: {
@@ -292,6 +292,16 @@ export default async function DashboardPage({ searchParams }) {
         },
         orderBy: { createdAt: "desc" },
       }),
+      (session.role === "BOOKKEEPER" || session.role === "ADMIN")
+        ? db.oldLoanRequest.findMany({
+            where: { status: "PENDING" },
+            include: {
+              employee: { include: { office: true } },
+              requestedBy: true,
+            },
+            orderBy: { createdAt: "desc" },
+          })
+        : Promise.resolve([]),
     ]);
 
     return (
@@ -302,6 +312,7 @@ export default async function DashboardPage({ searchParams }) {
           session={session}
           pendingUsers={pendingUsers}
           oldLoans={oldLoans}
+          pendingBookingRequests={pendingBookingRequests}
           stats={{
             totalOutstandingBalance,
             totalCollections,
