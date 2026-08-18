@@ -120,21 +120,190 @@ async function main() {
     },
   });
 
-  // ─── STEP 6: SEED BASELINE EMPLOYEES ───────────────────────────────────────
-  console.log("📋 Seeding Baseline Employees...");
+  // ─── STEP 6: SEED DEMO LOANER ACCOUNTS ────────────────────────────────────
+  console.log("📋 Seeding Demo Loaner Accounts (juan.delacruz, maria.santos, pedro.reyes)...");
   const penroOffice = await prisma.office.findFirst({ where: { name: "PENRO Palawan" } });
+  const cenroPps = await prisma.office.findFirst({ where: { name: "CENRO Puerto Princesa" } });
+  const cenroBrookes = await prisma.office.findFirst({ where: { name: "CENRO Brookes Point" } });
 
-  const clientEmployeesData = [
+  const pal = await prisma.airline.findFirst({ where: { name: "Philippine Airlines" } });
+  const ceb = await prisma.airline.findFirst({ where: { name: "Cebu Pacific" } });
+
+  const loanerPass = hashPassword("employee123");
+
+  // 1. JUAN DELA CRUZ (WITH OLD LOAN)
+  const emp1 = await prisma.employee.create({
+    data: {
+      employeeId: "EMP-1001",
+      fullName: "JUAN DELA CRUZ",
+      officeId: penroOffice.id,
+      position: "Forest Ranger",
+      contactNumber: "09171234561",
+      birthDate: "1988-04-12",
+      gender: "Male",
+      email: "juan.delacruz@denr.gov.ph",
+      status: "ACTIVE",
+    },
+  });
+
+  await prisma.user.create({
+    data: {
+      username: "juan.delacruz",
+      name: "JUAN DELA CRUZ",
+      passwordHash: loanerPass,
+      role: "VIEWER",
+      status: "APPROVED",
+      employeeId: emp1.id,
+    },
+  });
+
+  await prisma.oldLoan.create({
+    data: {
+      employeeId: emp1.id,
+      totalOldLoans: 1,
+      estimatedAmount: 35000.0,
+      dateSince: new Date("2025-01-15"),
+      remarks: "Pre-existing legacy ticket debt encoded by Bookkeeper from manual ledger.",
+      encodedById: bookkeeperUser.id,
+    },
+  });
+
+  // 2. MARIA SANTOS (REGULAR ACTIVE LOAN)
+  const emp2 = await prisma.employee.create({
+    data: {
+      employeeId: "EMP-1002",
+      fullName: "MARIA SANTOS",
+      officeId: cenroPps.id,
+      position: "Administrative Officer",
+      contactNumber: "09171234562",
+      birthDate: "1992-08-20",
+      gender: "Female",
+      email: "maria.santos@denr.gov.ph",
+      status: "ACTIVE",
+    },
+  });
+
+  await prisma.user.create({
+    data: {
+      username: "maria.santos",
+      name: "MARIA SANTOS",
+      passwordHash: loanerPass,
+      role: "VIEWER",
+      status: "APPROVED",
+      employeeId: emp2.id,
+    },
+  });
+
+  const booking2 = await prisma.booking.create({
+    data: {
+      referenceNumber: "PNR-MNL-PPS-8888",
+      employeeId: emp2.id,
+      airlineId: pal.id,
+      destination: "Manila (MNL) to Palawan (PPS)",
+      travelDate: new Date("2026-08-25"),
+      outboundTime: "08:30",
+      ticketCost: 6500.0,
+      serviceFee: 500.0,
+      baggageFee: 800.0,
+      insuranceFee: 200.0,
+      tripType: "ONE_WAY",
+      flightCount: 1,
+      remarks: "Official travel booking for DENR seminar",
+      checkNumber: "CHK-2026-0888",
+      bookedById: agentUser.id,
+    },
+  });
+
+  const dueDate2 = new Date();
+  dueDate2.setMonth(dueDate2.getMonth() + 1);
+
+  await prisma.loan.create({
+    data: {
+      bookingId: booking2.id,
+      principalAmount: 8000.0,
+      interestType: "PERCENT",
+      interestRate: 0,
+      interestAmount: 0,
+      totalAmountPayable: 8000.0,
+      monthlyInstallment: 8000.0,
+      remainingBalance: 8000.0,
+      dueDate: dueDate2,
+      status: "ACTIVE",
+    },
+  });
+
+  // 3. PEDRO REYES (OVERDUE LOAN)
+  const emp3 = await prisma.employee.create({
+    data: {
+      employeeId: "EMP-1003",
+      fullName: "PEDRO REYES",
+      officeId: cenroBrookes.id,
+      position: "EMS Specialist",
+      contactNumber: "09171234563",
+      birthDate: "1985-11-05",
+      gender: "Male",
+      email: "pedro.reyes@denr.gov.ph",
+      status: "ACTIVE",
+    },
+  });
+
+  await prisma.user.create({
+    data: {
+      username: "pedro.reyes",
+      name: "PEDRO REYES",
+      passwordHash: loanerPass,
+      role: "VIEWER",
+      status: "APPROVED",
+      employeeId: emp3.id,
+    },
+  });
+
+  const booking3 = await prisma.booking.create({
+    data: {
+      referenceNumber: "PNR-MNL-CEB-9999",
+      employeeId: emp3.id,
+      airlineId: ceb.id,
+      destination: "Manila (MNL) to Cebu (CEB) Roundtrip",
+      travelDate: new Date("2026-05-10"),
+      outboundTime: "10:15",
+      returnDate: new Date("2026-05-15"),
+      returnTime: "16:45",
+      ticketCost: 12000.0,
+      serviceFee: 500.0,
+      baggageFee: 1000.0,
+      insuranceFee: 500.0,
+      tripType: "ROUND_TRIP",
+      flightCount: 2,
+      remarks: "Field inspection roundtrip travel",
+      checkNumber: "CHK-2026-0999",
+      bookedById: agentUser.id,
+    },
+  });
+
+  await prisma.loan.create({
+    data: {
+      bookingId: booking3.id,
+      principalAmount: 14000.0,
+      interestType: "PERCENT",
+      interestRate: 0,
+      interestAmount: 0,
+      totalAmountPayable: 14000.0,
+      monthlyInstallment: 14000.0,
+      remainingBalance: 14000.0,
+      dueDate: new Date("2026-06-15"),
+      status: "OVERDUE",
+    },
+  });
+
+  // Additional Baseline Employees
+  const additionalEmps = [
     { fullName: "PEDRO VELASCO", position: "Forest Ranger" },
     { fullName: "TERESA AYSON", position: "Administrative Aide" },
     { fullName: "RONIE GANDEZA", position: "EMS Officer" },
     { fullName: "GLENDA SANCHEZ", position: "Land Management Officer" },
-    { fullName: "EPHRAIM OCOP", position: "Cartographer" },
-    { fullName: "LIM BRYAN KUTAT", position: "Senior Forest Specialist" },
   ];
-
-  let empCounter = 1001;
-  for (const emp of clientEmployeesData) {
+  let empCounter = 1004;
+  for (const emp of additionalEmps) {
     const createdEmp = await prisma.employee.create({
       data: {
         employeeId: `EMP-${empCounter++}`,
@@ -145,12 +314,11 @@ async function main() {
       },
     });
 
-    // Also link a VIEWER user account to each employee so they appear in borrower dropdowns
     await prisma.user.create({
       data: {
         username: emp.fullName.toLowerCase().replace(/\s+/g, "."),
         name: emp.fullName,
-        passwordHash: hashPassword("pademco123"),
+        passwordHash: hashPassword("employee123"),
         role: "VIEWER",
         status: "APPROVED",
         employeeId: createdEmp.id,
@@ -160,9 +328,17 @@ async function main() {
 
   console.log("\n✅ DB CLEANUP & RESEED COMPLETE!\n");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log("  USER ACCOUNTS SEEDED (Password for all: pademco123):");
+  console.log("  STAFF ACCOUNTS (Password: pademco123):");
   console.log("  🛡️  Admin:      DENR Pademco");
   console.log("  📚 Bookkeeper: bookkeeper");
+  console.log("  🎟️  Agent:      agent");
+  console.log("  💵 Cashier:    cashier");
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.log("  BORROWER ACCOUNTS (Password: employee123):");
+  console.log("  👤 Juan Dela Cruz: juan.delacruz (Old Loan ₱35,000)");
+  console.log("  👤 Maria Santos:   maria.santos   (Active Loan ₱8,000)");
+  console.log("  👤 Pedro Reyes:    pedro.reyes    (Overdue Loan ₱14,000)");
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("  🎟️  Agent:      agent");
   console.log("  💵 Cashier:    cashier");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");

@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { logAction } from "@/lib/audit";
+import { calculateBusinessDaysDueDate } from "@/lib/dates";
 import AppLayout from "@/components/AppLayout";
 import BookingsTabsClient from "./BookingsTabsClient";
 import { redirect } from "next/navigation";
@@ -124,7 +125,7 @@ export default async function BookingsPage() {
       acc[curr.key] = curr.value;
       return acc;
     }, {});
-    const serviceFee = parseFloat(settings.service_fee || "500.00");
+    const serviceFee = parseFloat(formData.get("serviceFee") || "0");
     const baseInterestRate = parseFloat(settings.interest_rate || "1.00");
     const maxActiveFlights = parseInt(settings.max_active_flights || "4");
 
@@ -135,9 +136,9 @@ export default async function BookingsPage() {
     const termMonths = 1;
     const interestRate = 0; // 0% initial interest during first month
 
-    const checkNumber = formData.get("checkNumber")?.trim() || null;
+    const checkNumber = null;
     const baggageFee = parseFloat(formData.get("baggageFee") || "0");
-    const insuranceFee = parseFloat(formData.get("insuranceFee") || "0");
+    const insuranceFee = 0;
 
     if (!employeeId || !airlineId || !referenceNumber || !destination || !travelDateStr || ticketCost <= 0) {
       return { error: "Please enter all required booking fields." };
@@ -188,15 +189,14 @@ export default async function BookingsPage() {
       }
 
       // Compute Loan figures
-      const principalAmount = ticketCost + serviceFee + baggageFee + insuranceFee;
+      const principalAmount = ticketCost + serviceFee + baggageFee;
       const interestAmount = principalAmount * (interestRate / 100);
       const totalAmountPayable = principalAmount + interestAmount;
       const monthlyInstallment = totalAmountPayable / termMonths;
       const remainingBalance = totalAmountPayable;
 
-      // Due date is 'termMonths' from today
-      const dueDate = new Date();
-      dueDate.setMonth(dueDate.getMonth() + termMonths);
+      // Due date is autocomputed 30 business days (excluding Sat & Sun) from today
+      const dueDate = calculateBusinessDaysDueDate(new Date(), 30);
 
       const travelDate = new Date(travelDateStr);
 
@@ -220,9 +220,9 @@ export default async function BookingsPage() {
             returnTime,
             ticketCost,
             serviceFee,
-            checkNumber,
+            checkNumber: null,
             baggageFee,
-            insuranceFee,
+            insuranceFee: 0,
             tripType,
             flightCount,
             remarks,

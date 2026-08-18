@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import { findExistingMatchingName } from "@/lib/nameMatching";
+import { logAction } from "@/lib/audit";
 
 // Hardcoded Palawan office stations
 const PALAWAN_OFFICES = [
@@ -98,7 +99,7 @@ export async function registerAction(prevState, formData) {
         }
       });
 
-      await tx.user.create({
+      const createdUser = await tx.user.create({
         data: {
           username,
           name,
@@ -106,8 +107,10 @@ export async function registerAction(prevState, formData) {
           role: "VIEWER",
           status: "PENDING",
           employeeId: emp.id,
+          createdByRole: "LOANER",
         }
       });
+      await logAction(createdUser.id, "CREATE", "USER", `[Account: ${name} (${username})] Self-registered loaner profile submission by Loaner.`);
     });
 
     return { success: true };

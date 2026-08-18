@@ -177,6 +177,10 @@ export default function ViewerDashboardClient({
                   </div>
                 </div>
               )}
+              <div className="mt-3 pt-2.5 border-t border-white/15 text-[11px] text-teal-100 font-semibold flex items-center justify-center sm:justify-start gap-1.5">
+                <span>ℹ️</span>
+                <span>Payment Deadline Rule: Automatically scheduled 30 business days from booking (Saturdays & Sundays excluded).</span>
+              </div>
             </div>
           ) : (
              <div className="mt-6 w-full max-w-lg bg-emerald-500/20 backdrop-blur-md border border-emerald-400/30 rounded-2xl p-5 shadow-inner">

@@ -186,13 +186,32 @@ export default function BookkeeperConsoleClient({
     }),
   ];
 
-  // Filter combined loans for Existing Loans tab
+  // Filter combined loans for Existing Loans tab searching across ALL columns
   const filteredLoansDirectory = combinedExistingLoans.filter(item => {
+    const q = loanSearch.toLowerCase().trim();
+    const bName = (item.borrowerName || "").toLowerCase();
+    const empId = (item.employeeId || "").toLowerCase();
+    const office = (item.officeName || "").toLowerCase();
+    const ref = (item.reference || "").toLowerCase();
+    const typeStr = (item.type || "").toLowerCase();
+    const statusStr = (item.status || "").toLowerCase();
+    const remarksStr = (item.remarks || "").toLowerCase();
+    const origStr = String(item.originalTotal || "");
+    const paidStr = String(item.totalPaid || "");
+    const remStr = String(item.remainingBalance || "");
+
     const matchesSearch =
-      item.borrowerName.toLowerCase().includes(loanSearch.toLowerCase()) ||
-      item.employeeId.toLowerCase().includes(loanSearch.toLowerCase()) ||
-      item.officeName.toLowerCase().includes(loanSearch.toLowerCase()) ||
-      item.reference.toLowerCase().includes(loanSearch.toLowerCase());
+      !q ||
+      bName.includes(q) ||
+      empId.includes(q) ||
+      office.includes(q) ||
+      ref.includes(q) ||
+      typeStr.includes(q) ||
+      statusStr.includes(q) ||
+      remarksStr.includes(q) ||
+      origStr.includes(q) ||
+      paidStr.includes(q) ||
+      remStr.includes(q);
 
     const matchesType =
       loanTypeFilter === "ALL" ||

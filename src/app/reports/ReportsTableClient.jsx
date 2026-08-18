@@ -76,7 +76,6 @@ export default function ReportsTableClient({
         return (
           <tr key={l.id} className={`hover:bg-slate-50 transition-colors font-mono text-[11px] divide-x divide-slate-100 ${isOld ? "bg-amber-50/20" : ""}`}>
             <td className="px-2 py-2 text-center text-slate-500 whitespace-nowrap">{l.dateStr}</td>
-            <td className="px-2 py-2 text-center font-bold text-slate-700 whitespace-nowrap">{l.checkNumber}</td>
             <td className="px-2.5 py-2 font-sans font-bold text-slate-800">
               <div className="truncate max-w-[130px]" title={l.payee}>{l.payee}</div>
               <span className={`block text-[8px] font-bold mt-0.5 whitespace-nowrap ${isOld ? "text-amber-700" : "text-emerald-700"}`}>
@@ -89,8 +88,6 @@ export default function ReportsTableClient({
             <td className="px-2 py-2 text-center text-slate-500 whitespace-nowrap">{l.paymentDateStr}</td>
             <td className="px-2 py-2 text-center font-semibold text-slate-700 whitespace-nowrap">{l.orNumber}</td>
             <td className="px-2 py-2 text-right text-rose-600 font-medium whitespace-nowrap">{l.penalty > 0 ? l.penalty.toLocaleString("en-US", { minimumFractionDigits: 2 }) : "—"}</td>
-            <td className="px-2 py-2 text-right text-slate-500 whitespace-nowrap">{l.insurance > 0 ? l.insurance.toLocaleString("en-US", { minimumFractionDigits: 2 }) : "—"}</td>
-            <td className="px-2 py-2 text-right text-slate-400 whitespace-nowrap">—</td>
             <td className="px-2 py-2 text-right text-slate-600 whitespace-nowrap">{l.markupPayment > 0 ? l.markupPayment.toLocaleString("en-US", { minimumFractionDigits: 2 }) : "—"}</td>
             <td className="px-2 py-2 text-right text-slate-500 whitespace-nowrap">{l.baggage > 0 ? l.baggage.toLocaleString("en-US", { minimumFractionDigits: 2 }) : "—"}</td>
             <td className="px-2 py-2 text-right text-slate-700 whitespace-nowrap">{l.ticketPurchased > 0 ? l.ticketPurchased.toLocaleString("en-US", { minimumFractionDigits: 2 }) : "—"}</td>
@@ -285,7 +282,6 @@ export default function ReportsTableClient({
       return (
         <tr className="bg-slate-100 text-slate-800 font-extrabold text-[10px] uppercase tracking-wider divide-x divide-slate-200">
           <th scope="col" className="px-2 py-2.5 text-center min-w-[70px]">DATE</th>
-          <th scope="col" className="px-2 py-2.5 text-center min-w-[65px]">CHECK NO</th>
           <th scope="col" className="px-2.5 py-2.5 text-left min-w-[120px]">PAYEE</th>
           <th scope="col" className="px-2 py-2.5 text-right min-w-[75px]">DR</th>
           <th scope="col" className="px-2 py-2.5 text-right min-w-[60px]">MARK UP</th>
@@ -293,8 +289,6 @@ export default function ReportsTableClient({
           <th scope="col" className="px-2 py-2.5 text-center min-w-[75px]">DATE PAID</th>
           <th scope="col" className="px-2 py-2.5 text-center min-w-[65px]">OR NO.</th>
           <th scope="col" className="px-2 py-2.5 text-right text-rose-700 min-w-[60px]">PENALTY</th>
-          <th scope="col" className="px-2 py-2.5 text-right min-w-[65px]">INS. VIA</th>
-          <th scope="col" className="px-2 py-2.5 text-right min-w-[65px]">INS. INC</th>
           <th scope="col" className="px-2 py-2.5 text-right min-w-[60px]">MARK UP</th>
           <th scope="col" className="px-2 py-2.5 text-right min-w-[60px]">BAGGAGE</th>
           <th scope="col" className="px-2 py-2.5 text-right min-w-[75px]">PURCHASED</th>

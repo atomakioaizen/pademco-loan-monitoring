@@ -49,67 +49,118 @@ export default function AdminDashboardClient({ loans, payments, session, stats, 
     }
   };
 
-  // Filters for modals
+  // Helper function to check if loan matches search query across ALL fields/columns
+  const matchLoanSearch = (l, query) => {
+    if (!query) return true;
+    const q = query.toLowerCase().trim();
+    const empName = (l.booking?.employee?.fullName || "").toLowerCase();
+    const empId = (l.booking?.employee?.employeeId || "").toLowerCase();
+    const officeName = (l.booking?.employee?.office?.name || "").toLowerCase();
+    const position = (l.booking?.employee?.position || "").toLowerCase();
+    const dest = (l.booking?.destination || "").toLowerCase();
+    const refNum = (l.booking?.referenceNumber || "").toLowerCase();
+    const passName = (l.booking?.passengerName || "").toLowerCase();
+    const passRel = (l.booking?.passengerRelationship || "").toLowerCase();
+    const agentName = (l.booking?.bookedBy?.name || "Admin").toLowerCase();
+    const status = (l.status || "").toLowerCase();
+    const remarks = (l.booking?.remarks || "").toLowerCase();
+    const dueDateStr = l.dueDate ? new Date(l.dueDate).toLocaleDateString().toLowerCase() : "";
+    const ticketCostStr = String(l.booking?.ticketCost || "");
+    const totalAmountStr = String(l.totalAmountPayable || "");
+    const balanceStr = String(l.remainingBalance || "");
+
+    return (
+      empName.includes(q) ||
+      empId.includes(q) ||
+      officeName.includes(q) ||
+      position.includes(q) ||
+      dest.includes(q) ||
+      refNum.includes(q) ||
+      passName.includes(q) ||
+      passRel.includes(q) ||
+      agentName.includes(q) ||
+      status.includes(q) ||
+      remarks.includes(q) ||
+      dueDateStr.includes(q) ||
+      ticketCostStr.includes(q) ||
+      totalAmountStr.includes(q) ||
+      balanceStr.includes(q)
+    );
+  };
+
+  // Filters for modals searching across ALL columns
   const filteredOutstanding = loans
     .filter((l) => l.remainingBalance > 0)
-    .filter((l) => {
-      const empName = l.booking.employee.fullName.toLowerCase();
-      const officeName = l.booking.employee.office.name.toLowerCase();
-      const dest = l.booking.destination.toLowerCase();
-      const query = searchQuery.toLowerCase();
-      return empName.includes(query) || officeName.includes(query) || dest.includes(query);
-    });
+    .filter((l) => matchLoanSearch(l, searchQuery));
 
   const filteredCollections = payments.filter((p) => {
-    const empName = p.loan.booking.employee.fullName.toLowerCase();
-    const orNum = p.receiptNumber.toLowerCase();
-    const cashierName = p.cashier.name.toLowerCase();
-    const query = searchQuery.toLowerCase();
-    return empName.includes(query) || orNum.includes(query) || cashierName.includes(query);
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase().trim();
+    const empName = (p.loan?.booking?.employee?.fullName || "").toLowerCase();
+    const empId = (p.loan?.booking?.employee?.employeeId || "").toLowerCase();
+    const officeName = (p.loan?.booking?.employee?.office?.name || "").toLowerCase();
+    const orNum = (p.receiptNumber || "").toLowerCase();
+    const cashierName = (p.cashier?.name || "").toLowerCase();
+    const dest = (p.loan?.booking?.destination || "").toLowerCase();
+    const refNum = (p.loan?.booking?.referenceNumber || "").toLowerCase();
+    const method = (p.paymentMethod || "").toLowerCase();
+    const amountStr = String(p.amountPaid || "");
+    const remarks = (p.remarks || "").toLowerCase();
+    const payDateStr = p.paymentDate ? new Date(p.paymentDate).toLocaleDateString().toLowerCase() : "";
+
+    return (
+      empName.includes(q) ||
+      empId.includes(q) ||
+      officeName.includes(q) ||
+      orNum.includes(q) ||
+      cashierName.includes(q) ||
+      dest.includes(q) ||
+      refNum.includes(q) ||
+      method.includes(q) ||
+      amountStr.includes(q) ||
+      remarks.includes(q) ||
+      payDateStr.includes(q)
+    );
   });
 
-  const filteredProfit = loans.filter((l) => {
-    const empName = l.booking.employee.fullName.toLowerCase();
-    const dest = l.booking.destination.toLowerCase();
-    const officeName = l.booking.employee.office.name.toLowerCase();
-    const query = searchQuery.toLowerCase();
-    return empName.includes(query) || dest.includes(query) || officeName.includes(query);
-  });
+  const filteredProfit = loans.filter((l) => matchLoanSearch(l, searchQuery));
 
   const filteredOverdue = loans
     .filter((l) => l.status === "OVERDUE")
-    .filter((l) => {
-      const empName = l.booking.employee.fullName.toLowerCase();
-      const officeName = l.booking.employee.office.name.toLowerCase();
-      const query = searchQuery.toLowerCase();
-      return empName.includes(query) || officeName.includes(query);
-    });
+    .filter((l) => matchLoanSearch(l, searchQuery));
+
   const filteredPending = pendingUsers.filter((u) => {
-    const name = u.name.toLowerCase();
-    const username = u.username.toLowerCase();
-    const officeName = u.employee?.office?.name?.toLowerCase() || "";
-    const query = searchQuery.toLowerCase();
-    return name.includes(query) || username.includes(query) || officeName.includes(query);
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase().trim();
+    const name = (u.name || "").toLowerCase();
+    const username = (u.username || "").toLowerCase();
+    const role = (u.role || "").toLowerCase();
+    const status = (u.status || "").toLowerCase();
+    const officeName = (u.employee?.office?.name || "").toLowerCase();
+    const empId = (u.employee?.employeeId || "").toLowerCase();
+    const position = (u.employee?.position || "").toLowerCase();
+    const contact = (u.employee?.contactNumber || "").toLowerCase();
+
+    return (
+      name.includes(q) ||
+      username.includes(q) ||
+      role.includes(q) ||
+      status.includes(q) ||
+      officeName.includes(q) ||
+      empId.includes(q) ||
+      position.includes(q) ||
+      contact.includes(q)
+    );
   });
 
-  // Derived data for new secondary stat card modals
+  // Derived data for secondary stat card modals
   const filteredActiveLoans = loans
     .filter((l) => l.status === "ACTIVE")
-    .filter((l) => {
-      const empName = l.booking.employee.fullName.toLowerCase();
-      const officeName = l.booking.employee.office.name.toLowerCase();
-      const query = searchQuery.toLowerCase();
-      return empName.includes(query) || officeName.includes(query);
-    });
+    .filter((l) => matchLoanSearch(l, searchQuery));
 
   const filteredFullyPaid = loans
     .filter((l) => l.status === "FULLY_PAID")
-    .filter((l) => {
-      const empName = l.booking.employee.fullName.toLowerCase();
-      const officeName = l.booking.employee.office.name.toLowerCase();
-      const query = searchQuery.toLowerCase();
-      return empName.includes(query) || officeName.includes(query);
-    });
+    .filter((l) => matchLoanSearch(l, searchQuery));
 
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -119,11 +170,7 @@ export default function AdminDashboardClient({ loans, payments, session, stats, 
       const d = new Date(l.dueDate);
       return l.remainingBalance > 0 && d >= startOfMonth && d <= endOfMonth;
     })
-    .filter((l) => {
-      const empName = l.booking.employee.fullName.toLowerCase();
-      const query = searchQuery.toLowerCase();
-      return empName.includes(query);
-    });
+    .filter((l) => matchLoanSearch(l, searchQuery));
 
   // Unique employees with loans
   const uniqueBorrowers = Object.values(
@@ -135,16 +182,34 @@ export default function AdminDashboardClient({ loans, payments, session, stats, 
       return acc;
     }, {})
   ).filter((b) => {
-    const query = searchQuery.toLowerCase();
-    return b.employee.fullName.toLowerCase().includes(query) || b.employee.office.name.toLowerCase().includes(query);
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase().trim();
+    const empName = (b.employee.fullName || "").toLowerCase();
+    const empId = (b.employee.employeeId || "").toLowerCase();
+    const officeName = (b.employee.office?.name || "").toLowerCase();
+    const position = (b.employee.position || "").toLowerCase();
+
+    return empName.includes(q) || empId.includes(q) || officeName.includes(q) || position.includes(q);
   });
 
   const filteredOldLoans = oldLoans.filter((ol) => {
-    const empName = ol.employee.fullName.toLowerCase();
-    const empId = ol.employee.employeeId.toLowerCase();
-    const officeName = ol.employee.office?.name?.toLowerCase() || "";
-    const query = searchQuery.toLowerCase();
-    return empName.includes(query) || empId.includes(query) || officeName.includes(query);
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase().trim();
+    const empName = (ol.employee?.fullName || "").toLowerCase();
+    const empId = (ol.employee?.employeeId || "").toLowerCase();
+    const officeName = (ol.employee?.office?.name || "").toLowerCase();
+    const remarks = (ol.remarks || "").toLowerCase();
+    const amountStr = String(ol.estimatedAmount || "");
+    const dateStr = ol.dateSince ? new Date(ol.dateSince).toLocaleDateString().toLowerCase() : "";
+
+    return (
+      empName.includes(q) ||
+      empId.includes(q) ||
+      officeName.includes(q) ||
+      remarks.includes(q) ||
+      amountStr.includes(q) ||
+      dateStr.includes(q)
+    );
   });
 
   const openModal = (type) => {
@@ -1467,7 +1532,7 @@ function OutstandingLoanCard({ loan }) {
       penalty,
       isOverdue,
       status,
-      isNextDue: status !== "PAID",
+      isNextDue: status !== "PAID" && (isOverdue || dueDate <= today),
     }];
   };
 

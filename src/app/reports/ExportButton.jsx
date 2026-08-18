@@ -71,7 +71,7 @@ export default function ExportButton({ data, filename, headersMap, reportTitle, 
       // Currency field keys for formatting
       const currencyKeys = new Set([
         "DR", "MARK UP", "TOTAL AMOUNT OF TICKET", "PENALTY", 
-        "Insurance for VIA", "Insurance Income", "MARK UP (Payment)", 
+        "MARK UP (Payment)", 
         "Baggage", "Ticket Purchased", "TOTAL AMOUNT", "UNPAID BALANCE",
         "Ticket Cost", "Coop Fee", "Total Advanced", "Coop Interest/Profit",
         "Total Payable", "Outstanding Balance", "Principal Cost", "Coop Profit Earned",
@@ -117,7 +117,7 @@ export default function ExportButton({ data, filename, headersMap, reportTitle, 
             cell.value = val;
             cell.alignment = { vertical: "middle", horizontal: "right" };
           } else {
-            cell.alignment = { vertical: "middle", horizontal: key === "DATE" || key === "CHECK NO" || key === "OR NO." || key === "DATE PAYMENT" ? "center" : "left" };
+            cell.alignment = { vertical: "middle", horizontal: key === "DATE" || key === "OR NO." || key === "DATE PAYMENT" ? "center" : "left" };
           }
 
           // Special highlight for UNPAID BALANCE > 0

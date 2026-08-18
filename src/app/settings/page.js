@@ -38,7 +38,7 @@ export default async function SettingsPage({ searchParams }) {
   ] = await Promise.all([
     db.systemSetting.findMany(),
     db.user.findMany({
-      include: { employee: true },
+      include: { employee: true, creator: true },
       orderBy: { username: "asc" },
     }),
     db.employee.findMany({
@@ -100,17 +100,16 @@ export default async function SettingsPage({ searchParams }) {
       }
     }
 
-    if (!org_name || !org_address || !service_fee || !interest_rate || !max_active_flights) {
+    if (!org_name || !org_address || !interest_rate || !max_active_flights) {
       return { error: "All configuration settings fields are required." };
     }
 
-    const serviceFeeVal = parseFloat(service_fee);
     const interestRateVal = parseFloat(interest_rate);
     const rebookingFeeVal = parseFloat(rebooking_fee);
     const maxActiveFlightsVal = parseInt(max_active_flights);
 
-    if (isNaN(serviceFeeVal) || serviceFeeVal < 0 || isNaN(interestRateVal) || interestRateVal < 0 || isNaN(rebookingFeeVal) || rebookingFeeVal < 0) {
-      return { error: "Service fee, interest rate, and rebooking fee must be valid non-negative numbers." };
+    if (isNaN(interestRateVal) || interestRateVal < 0 || isNaN(rebookingFeeVal) || rebookingFeeVal < 0) {
+      return { error: "Interest rate and rebooking fee must be valid non-negative numbers." };
     }
 
     if (isNaN(maxActiveFlightsVal) || maxActiveFlightsVal < 1) {
@@ -121,7 +120,6 @@ export default async function SettingsPage({ searchParams }) {
       const keys = {
         org_name,
         org_address,
-        service_fee: serviceFeeVal.toString(),
         interest_rate: interestRateVal.toString(),
         rebooking_fee: rebookingFeeVal.toString(),
         max_active_flights: maxActiveFlightsVal.toString(),
@@ -144,7 +142,7 @@ export default async function SettingsPage({ searchParams }) {
         session.id,
         "UPDATE",
         "SETTINGS",
-        `Updated cooperative settings to: Org Name: "${org_name}", Org Address: "${org_address}", Service Fee: ₱${serviceFeeVal}, Rebooking Fee: ₱${rebookingFeeVal}, Interest Rate: ${interestRateVal}%, Max Active Flights Limit: ${maxActiveFlightsVal}`
+        `Updated cooperative settings to: Org Name: "${org_name}", Org Address: "${org_address}", Rebooking Fee: ₱${rebookingFeeVal}, Interest Rate: ${interestRateVal}%, Max Active Flights Limit: ${maxActiveFlightsVal}`
       );
 
     } catch (e) {
@@ -256,6 +254,8 @@ export default async function SettingsPage({ searchParams }) {
           employeeId: role === "VIEWER" ? employeeId : null,
           status: "APPROVED",
           commissionRate,
+          createdById: session.id,
+          createdByRole: session.role,
         },
       });
 
@@ -263,7 +263,7 @@ export default async function SettingsPage({ searchParams }) {
         session.id,
         "CREATE",
         "USER",
-        `Provisioned new user account credentials for ${username} (${role}).`
+        `[Account: ${name} (${username})] Provisioned new user account credentials for ${username} (${role}) by ${session.role}.`
       );
 
     } catch (e) {
@@ -499,6 +499,7 @@ export default async function SettingsPage({ searchParams }) {
                   <th scope="col" className="px-6 py-3.5">Username</th>
                   <th scope="col" className="px-6 py-3.5">System Access Role</th>
                   <th scope="col" className="px-6 py-3.5">Linked Employee Profile</th>
+                  <th scope="col" className="px-6 py-3.5">Account Created</th>
                   <th scope="col" className="px-6 py-3.5 text-right no-print">Actions</th>
                 </tr>
               </thead>
@@ -532,6 +533,18 @@ export default async function SettingsPage({ searchParams }) {
                       ) : (
                         <span className="text-slate-400 font-medium text-xs">General Portal Account</span>
                       )}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col text-xs font-semibold">
+                        <span className="text-slate-700 font-mono">
+                          📅 {u.createdAt ? new Date(u.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "N/A"}
+                        </span>
+                        <span className="text-[10px] text-slate-500 mt-0.5 font-bold">
+                          👤 By: <strong className="text-slate-800 font-bold uppercase">{u.createdByRole || (u.creator ? u.creator.role : "ADMIN")}</strong>
+                          {u.creator ? ` (${u.creator.name})` : u.createdByRole === "LOANER" ? " (Self-Registered)" : ""}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-right no-print">
                       {u.id === session.id ? (

@@ -294,7 +294,7 @@ export default async function ReportsPage({ searchParams }) {
       const markup = l.booking?.serviceFee || 0;
       const baggage = l.booking?.baggageFee || 0;
       const insurance = l.booking?.insuranceFee || 0;
-      const totalTicket = dr + markup + baggage + insurance;
+      const totalTicket = dr + markup + baggage;
       const dateObj = l.booking?.travelDate ? new Date(l.booking.travelDate) : new Date(l.createdAt);
 
       return {
@@ -305,7 +305,6 @@ export default async function ReportsPage({ searchParams }) {
         dateStr: dateObj.toLocaleDateString("en-US"),
         month: dateObj.getMonth() + 1,
         year: dateObj.getFullYear(),
-        checkNumber: l.booking?.checkNumber || "—",
         payee: (l.booking?.employee?.fullName || "—") + (l.booking?.passengerName ? ` (${l.booking.passengerName})` : ""),
         dr,
         markup,
@@ -313,8 +312,6 @@ export default async function ReportsPage({ searchParams }) {
         paymentDateStr: latestPayment?.paymentDate ? new Date(latestPayment.paymentDate).toLocaleDateString("en-US") : "—",
         orNumber: latestPayment?.receiptNumber || "—",
         penalty: totalPenalty,
-        insurance,
-        insuranceIncome: 0,
         markupPayment: markup,
         baggage,
         ticketPurchased: latestPayment?.ticketPurchased || (totalPaid > 0 ? dr : 0),
@@ -339,7 +336,6 @@ export default async function ReportsPage({ searchParams }) {
         dateStr: dateObj.toLocaleDateString("en-US"),
         month: dateObj.getMonth() + 1,
         year: dateObj.getFullYear(),
-        checkNumber: "OLD-BAL",
         payee: ol.employee?.fullName || "—",
         dr,
         markup: 0,
@@ -347,8 +343,6 @@ export default async function ReportsPage({ searchParams }) {
         paymentDateStr: latestPayment?.createdAt ? new Date(latestPayment.createdAt).toLocaleDateString("en-US") : "—",
         orNumber: latestPayment?.receiptNumber || "—",
         penalty: 0,
-        insurance: 0,
-        insuranceIncome: 0,
         markupPayment: 0,
         baggage: 0,
         ticketPurchased: totalPaid,
@@ -386,7 +380,6 @@ export default async function ReportsPage({ searchParams }) {
     reportData = combined;
     exportData = combined.map((item) => ({
       "DATE": item.dateStr,
-      "CHECK NO": item.checkNumber,
       "PAYEE": item.payee,
       "DR": item.dr,
       "MARK UP": item.markup,
@@ -394,8 +387,6 @@ export default async function ReportsPage({ searchParams }) {
       "DATE PAYMENT": item.paymentDateStr,
       "OR NO.": item.orNumber,
       "PENALTY": item.penalty,
-      "Insurance for VIA": item.insurance,
-      "Insurance Income": 0,
       "MARK UP (Payment)": item.markupPayment,
       "Baggage": item.baggage,
       "Ticket Purchased": item.ticketPurchased,

@@ -75,7 +75,7 @@ export default function RecordPaymentForm({
         penalty: 0,
         isOverdue: false,
         status,
-        isNextDue: status !== "PAID",
+        isNextDue: status !== "PAID" && dueDate <= today,
       }];
     }
 

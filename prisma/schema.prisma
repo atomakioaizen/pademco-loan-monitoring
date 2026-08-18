@@ -30,6 +30,10 @@ model User {
   oldLoanRequests    OldLoanRequest[]         @relation("RequestedBy")
   reviewedRequests   OldLoanRequest[]         @relation("ReviewedBy")
   oldLoanPayments    OldLoanPayment[]         @relation("OldLoanPayments")
+  createdById        String?
+  createdByRole      String?                  // "LOANER", "ADMIN", "BOOKKEEPER"
+  creator            User?                    @relation("UserCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdUsers       User[]                   @relation("UserCreatedBy")
 }
 
 model Office {

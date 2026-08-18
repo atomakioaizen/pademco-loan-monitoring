@@ -19,10 +19,40 @@ export default function PaymentsConsoleClient({
 
   const filteredPayments = payments.filter((pay) => {
     if (!searchQuery) return true;
-    const term = searchQuery.toLowerCase();
+    const term = searchQuery.toLowerCase().trim();
+
+    const receiptNum = (pay.receiptNumber || "").toLowerCase();
+    const empName = (pay.loan?.booking?.employee?.fullName || "").toLowerCase();
+    const empId = (pay.loan?.booking?.employee?.employeeId || "").toLowerCase();
+    const officeName = (pay.loan?.booking?.employee?.office?.name || "").toLowerCase();
+    const position = (pay.loan?.booking?.employee?.position || "").toLowerCase();
+    const dest = (pay.loan?.booking?.destination || "").toLowerCase();
+    const refNum = (pay.loan?.booking?.referenceNumber || "").toLowerCase();
+    const passName = (pay.loan?.booking?.passengerName || "").toLowerCase();
+    const passRel = (pay.loan?.booking?.passengerRelationship || "").toLowerCase();
+    const cashierName = (pay.cashier?.name || "").toLowerCase();
+    const method = (pay.paymentMethod || "").toLowerCase();
+    const amountStr = String(pay.amountPaid || "");
+    const penaltyStr = String(pay.penaltyAmount || "");
+    const remarks = (pay.remarks || "").toLowerCase();
+    const payDateStr = pay.paymentDate ? new Date(pay.paymentDate).toLocaleDateString().toLowerCase() : "";
+
     return (
-      pay.receiptNumber.toLowerCase().includes(term) ||
-      pay.loan.booking.employee.fullName.toLowerCase().includes(term)
+      receiptNum.includes(term) ||
+      empName.includes(term) ||
+      empId.includes(term) ||
+      officeName.includes(term) ||
+      position.includes(term) ||
+      dest.includes(term) ||
+      refNum.includes(term) ||
+      passName.includes(term) ||
+      passRel.includes(term) ||
+      cashierName.includes(term) ||
+      method.includes(term) ||
+      amountStr.includes(term) ||
+      penaltyStr.includes(term) ||
+      remarks.includes(term) ||
+      payDateStr.includes(term)
     );
   });
 

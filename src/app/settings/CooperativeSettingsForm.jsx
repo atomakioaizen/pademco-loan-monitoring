@@ -150,22 +150,6 @@ export default function CooperativeSettingsForm({ settings, action }) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="service_fee" className="block text-sm font-semibold text-slate-700">
-                Cooperative Service Fee / Markup (₱)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                name="service_fee"
-                id="service_fee"
-                required
-                defaultValue={settings.service_fee || "500.00"}
-                className="mt-1 block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-sm transition-all"
-              />
-            </div>
-
-            <div>
               <label htmlFor="interest_rate" className="block text-sm font-semibold text-slate-700">
                 Interest Rate per Month (%)
               </label>

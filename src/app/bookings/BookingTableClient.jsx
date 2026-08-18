@@ -90,11 +90,45 @@ export default function BookingTableClient({ bookings, airlines, session, maxAct
     if (book.loan?.status === "FULLY_PAID") return false;
 
     const term = searchTerm.toLowerCase().trim();
-    const refMatch = book.referenceNumber.toLowerCase().includes(term);
-    const empMatch = book.employee.fullName.toLowerCase().includes(term);
-    const destMatch = book.destination.toLowerCase().includes(term);
-    const airMatch = book.airline.name.toLowerCase().includes(term);
-    const matchesSearch = !term || refMatch || empMatch || destMatch || airMatch;
+    const refMatch = (book.referenceNumber || "").toLowerCase().includes(term);
+    const empMatch = (book.employee?.fullName || "").toLowerCase().includes(term);
+    const empIdMatch = (book.employee?.employeeId || "").toLowerCase().includes(term);
+    const officeMatch = (book.employee?.office?.name || "").toLowerCase().includes(term);
+    const posMatch = (book.employee?.position || "").toLowerCase().includes(term);
+    const destMatch = (book.destination || "").toLowerCase().includes(term);
+    const airMatch = (book.airline?.name || "").toLowerCase().includes(term);
+    const passNameMatch = (book.passengerName || "").toLowerCase().includes(term);
+    const passRelMatch = (book.passengerRelationship || "").toLowerCase().includes(term);
+    const agentMatch = (book.bookedBy?.name || "Admin").toLowerCase().includes(term);
+    const statusMatch = (book.loan?.status || "").toLowerCase().includes(term);
+    const remarksMatch = (book.remarks || "").toLowerCase().includes(term);
+    const tripTypeMatch = (book.tripType || "").toLowerCase().includes(term);
+    const travelDateMatch = book.travelDate ? new Date(book.travelDate).toLocaleDateString().toLowerCase().includes(term) : false;
+    const dueDateMatch = book.loan?.dueDate ? new Date(book.loan.dueDate).toLocaleDateString().toLowerCase().includes(term) : false;
+    const costMatch = String(book.ticketCost || "").includes(term);
+    const totalMatch = String(book.loan?.totalAmountPayable || "").includes(term);
+    const balanceMatch = String(book.loan?.remainingBalance || "").includes(term);
+
+    const matchesSearch =
+      !term ||
+      refMatch ||
+      empMatch ||
+      empIdMatch ||
+      officeMatch ||
+      posMatch ||
+      destMatch ||
+      airMatch ||
+      passNameMatch ||
+      passRelMatch ||
+      agentMatch ||
+      statusMatch ||
+      remarksMatch ||
+      tripTypeMatch ||
+      travelDateMatch ||
+      dueDateMatch ||
+      costMatch ||
+      totalMatch ||
+      balanceMatch;
 
     const loanStatus = book.loan?.status || "NO_LOAN";
     let matchesStatus = true;

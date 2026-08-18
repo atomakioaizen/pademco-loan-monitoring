@@ -14,7 +14,7 @@ export default function BookingFormClient({
   const [tripType, setTripType] = useState("ONE_WAY");
   const [ticketCost, setTicketCost] = useState("");
   const [baggageFee, setBaggageFee] = useState("");
-  const [insuranceFee, setInsuranceFee] = useState("");
+  const [customServiceFee, setCustomServiceFee] = useState("500");
   const [termMonths, setTermMonths] = useState(1);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -69,7 +69,6 @@ export default function BookingFormClient({
     }
   }
 
-  const serviceFee = settings?.service_fee ?? 500.00;
   const baseInterestRate = settings?.interest_rate ?? 1.00;
   const maxActiveFlights = settings?.max_active_flights ?? 4;
   const interestRatePercent = 0; // 0% interest in the first month
@@ -77,8 +76,8 @@ export default function BookingFormClient({
   // Dynamic values for premium preview
   const parsedCost = parseFloat(ticketCost) || 0;
   const parsedBaggage = parseFloat(baggageFee) || 0;
-  const parsedInsurance = parseFloat(insuranceFee) || 0;
-  const principal = parsedCost > 0 ? parsedCost + serviceFee + parsedBaggage + parsedInsurance : 0;
+  const parsedServiceFee = parseFloat(customServiceFee) || 0;
+  const principal = parsedCost > 0 ? parsedCost + parsedServiceFee + parsedBaggage : 0;
   const interestAmount = 0; // 0% interest initially
   const totalPayable = principal;
   const monthlyInstallment = totalPayable;
@@ -90,7 +89,7 @@ export default function BookingFormClient({
     setIsSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
-    formData.append("serviceFee", String(serviceFee));
+    formData.append("serviceFee", String(parsedServiceFee));
     formData.append("interestRate", "0");
     formData.append("interestType", "PERCENT");
     formData.append("termMonths", "1");
@@ -106,7 +105,7 @@ export default function BookingFormClient({
         }
         setTicketCost("");
         setBaggageFee("");
-        setInsuranceFee("");
+        setCustomServiceFee("500");
         setTripType("ONE_WAY");
         setTermMonths(1);
         setSelectedEmpId("");
@@ -214,20 +213,6 @@ export default function BookingFormClient({
               />
             </div>
 
-            {/* Check Number */}
-            <div>
-              <label htmlFor="checkNumber" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Coop Disbursement Check No. (CHECK NO)
-              </label>
-              <input
-                type="text"
-                name="checkNumber"
-                id="checkNumber"
-                autoComplete="off"
-                placeholder="e.g., CHK-2026-001"
-                className="mt-1.5 block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-sm transition-all font-mono"
-              />
-            </div>
           </div>
 
           {/* Toggle option for Relative / Co-maker booking style */}
@@ -269,21 +254,26 @@ export default function BookingFormClient({
                 <label htmlFor="passengerRelationship" className="block text-xs font-bold text-blue-800 uppercase tracking-wider">
                   Relationship to Employee Borrower
                 </label>
-                <select
+                <input
+                  type="text"
+                  list="relationshipOptions"
                   name="passengerRelationship"
                   id="passengerRelationship"
                   required
+                  autoComplete="off"
+                  placeholder="Select or type relationship..."
                   className="mt-1.5 block w-full rounded-xl border border-slate-350 px-4 py-2.5 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 text-slate-900 text-sm transition-all bg-white"
-                >
-                  <option value="">Select Relationship</option>
-                  <option value="Spouse">Spouse</option>
-                  <option value="Child">Child</option>
-                  <option value="Parent">Parent</option>
-                  <option value="Sibling">Sibling</option>
-                  <option value="Relative">Relative</option>
-                  <option value="Friend">Friend</option>
-                  <option value="Other">Other</option>
-                </select>
+                />
+                <datalist id="relationshipOptions">
+                  <option value="Spouse" />
+                  <option value="Child" />
+                  <option value="Parent" />
+                  <option value="Sibling" />
+                  <option value="Relative" />
+                  <option value="Friend" />
+                  <option value="Colleague" />
+                  <option value="Other" />
+                </datalist>
               </div>
             </div>
           )}
@@ -656,12 +646,20 @@ export default function BookingFormClient({
 
             {/* Service Fee */}
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Cooperative Markup (MARK UP)
+              <label htmlFor="serviceFeeInput" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Cooperative Markup (MARK UP) (₱)
               </label>
-              <div className="mt-1.5 block w-full rounded-xl border border-slate-200 bg-slate-100/70 px-4 py-2.5 text-slate-600 text-sm font-bold font-mono">
-                ₱{serviceFee.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-              </div>
+              <input
+                type="number"
+                name="serviceFeeInput"
+                id="serviceFeeInput"
+                step="0.01"
+                autoComplete="off"
+                placeholder="0.00"
+                value={customServiceFee}
+                onChange={(e) => setCustomServiceFee(e.target.value)}
+                className="mt-1.5 block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-sm transition-all font-mono font-bold"
+              />
             </div>
 
             {/* Baggage Fee */}
@@ -679,25 +677,6 @@ export default function BookingFormClient({
                 placeholder="0.00"
                 value={baggageFee}
                 onChange={(e) => setBaggageFee(e.target.value)}
-                className="mt-1.5 block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-sm transition-all font-mono"
-              />
-            </div>
-
-            {/* Insurance Fee */}
-            <div>
-              <label htmlFor="insuranceFee" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Insurance Charge (VIA) (₱)
-              </label>
-              <input
-                type="number"
-                name="insuranceFee"
-                id="insuranceFee"
-                min="0"
-                step="0.01"
-                autoComplete="off"
-                placeholder="0.00"
-                value={insuranceFee}
-                onChange={(e) => setInsuranceFee(e.target.value)}
                 className="mt-1.5 block w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-900 text-sm transition-all font-mono"
               />
             </div>
@@ -758,6 +737,11 @@ export default function BookingFormClient({
                 Enter ticket cost above to view monthly payment preview.
               </p>
             )}
+
+            <p className="text-[10px] text-teal-800 font-bold bg-teal-50 border border-teal-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5 mt-2">
+              <span>ℹ️</span>
+              <span>Payment Deadline Rule: Automatically scheduled 30 business days from booking (Saturdays & Sundays excluded).</span>
+            </p>
           </div>
 
           {/* Right Column: Submission Button */}
