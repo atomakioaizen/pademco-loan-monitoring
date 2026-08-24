@@ -1214,7 +1214,7 @@ export default function AdminDashboardClient({ loans, payments, session, stats, 
                                 {ol.employee.office?.name || "DENR"}
                               </td>
                               <td className="px-6 py-4 text-right font-mono font-black text-rose-700 text-sm">
-                                ₱{(ol.principalBalance || 35000).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                ₱{(ol.unpaidBalance ?? ol.totalTicketAmount ?? ol.estimatedAmount ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
                               </td>
                               <td className="px-6 py-4 text-center text-slate-600 font-medium font-mono">
                                 {new Date(ol.dateSince).toLocaleDateString("en-US", {

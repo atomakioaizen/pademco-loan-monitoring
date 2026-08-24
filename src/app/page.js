@@ -240,8 +240,8 @@ export default async function DashboardPage({ searchParams }) {
   const totalCollections = totalCollectionsAgg._sum.amountPaid || 0;
   const totalProfit = Number(profitResult?.[0]?.total_profit || 0);
 
-  // Render AdminDashboardClient for ADMIN, CASHIER, or AGENT roles (consists strictly of clickable stat cards)
-  if (session.role === "ADMIN" || session.role === "CASHIER" || session.role === "AGENT" || session.role === "BOOKKEEPER") {
+  // Render AdminDashboardClient for ADMIN, CASHIER, AGENT, BOOKKEEPER, or MANAGER roles
+  if (session.role === "ADMIN" || session.role === "CASHIER" || session.role === "AGENT" || session.role === "BOOKKEEPER" || session.role === "MANAGER") {
     const [allLoans, allPayments, pendingUsers, oldLoans, pendingBookingRequests] = await Promise.all([
       db.loan.findMany({
         include: {

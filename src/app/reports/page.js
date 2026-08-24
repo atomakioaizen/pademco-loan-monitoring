@@ -17,7 +17,7 @@ export const metadata = {
 export default async function ReportsPage({ searchParams }) {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (!["ADMIN", "BOOKKEEPER", "CASHIER", "AGENT"].includes(session.role)) redirect("/");
+  if (!["ADMIN", "BOOKKEEPER", "CASHIER", "AGENT", "MANAGER"].includes(session.role)) redirect("/");
 
   // Get filter parameters from URL
   const resolvedSearchParams = await searchParams;

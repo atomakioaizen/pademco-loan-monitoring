@@ -11,17 +11,27 @@ export async function encodeOldLoanAction(formData) {
     return { error: "Only Bookkeepers can perform encoding and edit actions. Admin access is view-only." };
   }
 
+  const recordId = formData.get("id")?.trim() || null;
   const employeeId = formData.get("employeeId");
-  const estimatedAmountRaw = formData.get("estimatedAmount");
-  const estimatedAmount = estimatedAmountRaw ? parseFloat(estimatedAmountRaw) : null;
-  const dateSinceStr = formData.get("dateSince");
+  const ticketDateStr = formData.get("ticketDate");
+  const checkNumber = formData.get("checkNumber")?.trim() || null;
+  const drAmount = parseFloat(formData.get("drAmount") || "0");
+  const markupAmount = parseFloat(formData.get("markupAmount") || "0");
+  const totalTicketAmountRaw = formData.get("totalTicketAmount");
+  const totalTicketAmount = totalTicketAmountRaw ? parseFloat(totalTicketAmountRaw) : (drAmount + markupAmount);
+  const penaltyAmount = parseFloat(formData.get("penaltyAmount") || "0");
+  const paymentDateStr = formData.get("paymentDateStr")?.trim() || null;
+  const orNumber = formData.get("orNumber")?.trim() || null;
+  const paidTotal = parseFloat(formData.get("paidTotal") || "0");
+  const unpaidBalanceRaw = formData.get("unpaidBalance");
+  const unpaidBalance = unpaidBalanceRaw ? parseFloat(unpaidBalanceRaw) : Math.max(0, totalTicketAmount + penaltyAmount - paidTotal);
   const remarks = formData.get("remarks")?.trim() || null;
 
-  if (!employeeId || !estimatedAmount || estimatedAmount <= 0 || !dateSinceStr) {
-    return { error: "Please provide employee, total amount owed, and oldest loan date." };
+  if (!employeeId || !totalTicketAmount || totalTicketAmount <= 0) {
+    return { error: "Please select employee and enter total ticket amount." };
   }
 
-  const dateSince = new Date(dateSinceStr);
+  const ticketDate = ticketDateStr ? new Date(ticketDateStr) : new Date();
 
   try {
     const employee = await db.employee.findUnique({
@@ -31,30 +41,58 @@ export async function encodeOldLoanAction(formData) {
       return { error: "Employee not found." };
     }
 
-    const oldLoan = await db.oldLoan.upsert({
-      where: { employeeId },
-      update: {
-        totalOldLoans: 1,
-        estimatedAmount,
-        dateSince,
-        remarks,
-        encodedById: session.id,
-      },
-      create: {
-        employeeId,
-        totalOldLoans: 1,
-        estimatedAmount,
-        dateSince,
-        remarks,
-        encodedById: session.id,
-      },
-    });
+    let record;
+    if (recordId) {
+      record = await db.oldLoan.update({
+        where: { id: recordId },
+        data: {
+          employeeId,
+          payeeName: employee.fullName,
+          ticketDate,
+          checkNumber,
+          drAmount,
+          markupAmount,
+          totalTicketAmount,
+          penaltyAmount,
+          paymentDateStr,
+          orNumber,
+          paidTotal,
+          unpaidBalance,
+          estimatedAmount: totalTicketAmount,
+          dateSince: ticketDate,
+          remarks,
+          encodedById: session.id,
+        },
+      });
+    } else {
+      record = await db.oldLoan.create({
+        data: {
+          employeeId,
+          payeeName: employee.fullName,
+          ticketDate,
+          checkNumber,
+          drAmount,
+          markupAmount,
+          totalTicketAmount,
+          penaltyAmount,
+          paymentDateStr,
+          orNumber,
+          paidTotal,
+          unpaidBalance,
+          totalOldLoans: 1,
+          estimatedAmount: totalTicketAmount,
+          dateSince: ticketDate,
+          remarks,
+          encodedById: session.id,
+        },
+      });
+    }
 
     await logAction(
       session.id,
-      "CREATE",
+      recordId ? "UPDATE" : "CREATE",
       "LOAN",
-      `Encoded/updated old loan record for employee "${employee.fullName}" (Total owed: ₱${estimatedAmount?.toLocaleString()} since ${dateSinceStr}).`
+      `${recordId ? 'Updated' : 'Encoded'} old ticket loan for "${employee.fullName}" (Total: ₱${totalTicketAmount.toLocaleString()}, Unpaid: ₱${unpaidBalance.toLocaleString()}).`
     );
 
     revalidatePath("/bookkeeper");
@@ -85,16 +123,23 @@ export async function deleteOldLoanAction(id) {
       where: { id },
     });
 
-    // Also delete any existing request for this employee
-    await db.oldLoanRequest.deleteMany({
-      where: { employeeId: oldLoan.employeeId },
+    // Check if employee has any remaining unpaid old loans
+    const remainingUnpaid = await db.oldLoan.count({
+      where: { employeeId: oldLoan.employeeId, unpaidBalance: { gt: 0 } }
     });
+
+    // Only delete approval requests if employee has NO unpaid old loans left
+    if (remainingUnpaid === 0) {
+      await db.oldLoanRequest.deleteMany({
+        where: { employeeId: oldLoan.employeeId },
+      });
+    }
 
     await logAction(
       session.id,
       "DELETE",
       "LOAN",
-      `Deleted old loan record and requests for employee "${oldLoan.employee.fullName}".`
+      `Deleted old ticket loan record for borrower "${oldLoan.employee ? oldLoan.employee.fullName : oldLoan.payeeName}".`
     );
 
     revalidatePath("/bookkeeper");

@@ -15,7 +15,7 @@ model User {
   username           String                   @unique
   name               String
   passwordHash       String
-  role               String                   // "ADMIN", "CASHIER", "VIEWER", "AGENT", "BOOKKEEPER"
+  role               String                   // "ADMIN", "CASHIER", "VIEWER", "AGENT", "BOOKKEEPER", "MANAGER"
   status             String                   @default("APPROVED") // "PENDING", "APPROVED", "DECLINED"
   employeeId         String?                  @unique
   employee           Employee?                @relation(fields: [employeeId], references: [id], onDelete: Cascade)
@@ -70,7 +70,7 @@ model Employee {
   updatedAt     DateTime  @updatedAt
   bookings      Booking[]
   user          User?
-  oldLoan       OldLoan?
+  oldLoans      OldLoan[]
   oldLoanRequest OldLoanRequest?
 
   @@index([officeId])
@@ -203,18 +203,40 @@ model AgentCommissionPayment {
 }
 
 model OldLoan {
-  id              String            @id @default(uuid())
-  employeeId      String            @unique
-  employee        Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  totalOldLoans   Int
-  estimatedAmount Float?            // Optional estimated total amount owed
-  dateSince       DateTime
-  remarks         String?
-  encodedById     String
-  encodedBy       User              @relation(fields: [encodedById], references: [id])
-  payments        OldLoanPayment[]
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  id                  String            @id @default(uuid())
+  employeeId          String
+  employee            Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  ticketDate          DateTime?
+  checkNumber         String?
+  payeeName           String            @default("")
+  payeeExtra          String?
+  drAmount            Float             @default(0)
+  crAmount            Float             @default(0)
+  insuranceIncome     Float             @default(0)
+  markupAmount        Float             @default(0)
+  totalTicketAmount   Float             @default(0)
+  penaltyAmount       Float             @default(0)
+  paymentDateStr      String?
+  orNumber            String?
+  paidPenalty         Float             @default(0)
+  insuranceVia        Float             @default(0)
+  paidMarkup          Float             @default(0)
+  baggageFee          Float             @default(0)
+  ticketPurchasedPaid Float             @default(0)
+  paidTotal           Float             @default(0)
+  unpaidBalance       Float             @default(0)
+  totalOldLoans       Int               @default(1)
+  estimatedAmount     Float?            // Legacy field / Total ticket amount
+  dateSince           DateTime?
+  remarks             String?
+  encodedById         String?
+  encodedBy           User?             @relation(fields: [encodedById], references: [id])
+  payments            OldLoanPayment[]
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([employeeId])
+  @@index([payeeName])
 }
 
 model OldLoanRequest {

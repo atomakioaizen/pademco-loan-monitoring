@@ -57,13 +57,20 @@ export function proxy(request) {
       return NextResponse.redirect(homeUrl);
     }
 
-    // 2. Reports: ADMIN, BOOKKEEPER, CASHIER, and AGENT access
-    if (pathname.startsWith("/reports") && !["ADMIN", "BOOKKEEPER", "CASHIER", "AGENT"].includes(user.role)) {
+    // 2. Reports: ADMIN, BOOKKEEPER, CASHIER, AGENT, and MANAGER access
+    if (pathname.startsWith("/reports") && !["ADMIN", "BOOKKEEPER", "CASHIER", "AGENT", "MANAGER"].includes(user.role)) {
       const homeUrl = new URL("/", request.url);
       return NextResponse.redirect(homeUrl);
     }
 
-    // 3. Staff-only routes
+    // 3. Manager allowed routes: /, /bookkeeper, /reports, /profile. Restrict manager from operational mutation routes.
+    const managerRestrictedRoutes = ["/payments", "/bookings", "/offices", "/airlines", "/employees", "/audit", "/commissions", "/settings"];
+    if (user.role === "MANAGER" && managerRestrictedRoutes.some(route => pathname.startsWith(route))) {
+      const homeUrl = new URL("/", request.url);
+      return NextResponse.redirect(homeUrl);
+    }
+
+    // 4. Viewer-restricted staff routes
     const staffOnlyRoutes = ["/payments", "/bookings", "/offices", "/airlines", "/employees", "/audit", "/bookkeeper", "/commissions"];
     if (
       staffOnlyRoutes.some((route) => pathname.startsWith(route)) &&

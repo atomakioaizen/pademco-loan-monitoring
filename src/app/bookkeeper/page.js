@@ -18,7 +18,7 @@ export const metadata = {
 export default async function BookkeeperPage({ searchParams }) {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (session.role !== "BOOKKEEPER" && session.role !== "ADMIN") redirect("/");
+  if (session.role !== "BOOKKEEPER" && session.role !== "ADMIN" && session.role !== "MANAGER") redirect("/");
 
   const resolvedSearchParams = await searchParams;
   const rawTab = (resolvedSearchParams?.tab || "").toUpperCase();

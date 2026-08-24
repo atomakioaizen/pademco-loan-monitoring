@@ -78,7 +78,17 @@ export default async function BookingsPage() {
   }, {});
 
   const oldLoanMap = oldLoans.reduce((acc, curr) => {
-    acc[curr.employeeId] = curr;
+    if (curr.unpaidBalance > 0) {
+      if (!acc[curr.employeeId]) {
+        acc[curr.employeeId] = {
+          totalOldLoans: 0,
+          totalUnpaidBalance: 0,
+          dateSince: curr.ticketDate || curr.dateSince,
+        };
+      }
+      acc[curr.employeeId].totalOldLoans += 1;
+      acc[curr.employeeId].totalUnpaidBalance += curr.unpaidBalance;
+    }
     return acc;
   }, {});
 
@@ -615,7 +625,7 @@ export default async function BookingsPage() {
               hasOldLoan: !!oldLoan,
               oldLoanDetails: oldLoan ? {
                 totalOldLoans: oldLoan.totalOldLoans,
-                estimatedAmount: oldLoan.estimatedAmount,
+                estimatedAmount: oldLoan.totalUnpaidBalance,
                 dateSince: oldLoan.dateSince,
               } : null,
               oldLoanRequestStatus: req ? req.status : "NONE",
