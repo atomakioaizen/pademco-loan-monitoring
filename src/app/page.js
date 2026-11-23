@@ -68,8 +68,8 @@ export default async function DashboardPage({ searchParams }) {
       );
     }
 
-    // Load active employee bookings, loans, and old loan record in parallel
-    const [bookings, loans, oldLoan, settingsList] = await Promise.all([
+    // Load active employee bookings, loans, and old loan records in parallel
+    const [bookings, loans, oldLoans, settingsList] = await Promise.all([
       db.booking.findMany({
         where: { employeeId, isArchived: false },
         include: { airline: true, loan: true, bookedBy: true },
@@ -83,12 +83,13 @@ export default async function DashboardPage({ searchParams }) {
         },
         orderBy: { createdAt: "desc" },
       }),
-      db.oldLoan.findUnique({
+      db.oldLoan.findMany({
         where: { employeeId },
         include: {
           encodedBy: { select: { name: true, username: true } },
           payments: true,
         },
+        orderBy: { ticketDate: "asc" },
       }),
       db.systemSetting.findMany(),
     ]);
@@ -142,14 +143,23 @@ export default async function DashboardPage({ searchParams }) {
           totalOutstanding={totalOutstanding}
           totalPaid={totalPaid}
           hasOverdue={hasOverdue}
-          oldLoan={oldLoan ? {
-            totalOldLoans: oldLoan.totalOldLoans,
-            estimatedAmount: oldLoan.estimatedAmount,
-            totalPaid: oldLoan.payments.reduce((sum, p) => sum + p.amount, 0),
-            dateSince: oldLoan.dateSince,
-            remarks: oldLoan.remarks,
-            encodedBy: oldLoan.encodedBy?.name || oldLoan.encodedBy?.username || "Bookkeeper",
-          } : null}
+          oldLoan={oldLoans.length > 0 ? (() => {
+            const totalTicket = oldLoans.reduce((sum, l) => sum + (l.totalTicketAmount || l.estimatedAmount || 0), 0);
+            const totalPaidExcelAndSys = oldLoans.reduce((sum, l) => sum + (l.paidTotal || 0) + l.payments.reduce((pSum, p) => pSum + p.amount, 0), 0);
+            const totalUnpaid = oldLoans.reduce((sum, l) => sum + (l.unpaidBalance || 0), 0);
+            const earliestDate = oldLoans
+              .map(l => l.dateSince || l.ticketDate || l.createdAt)
+              .filter(Boolean)
+              .sort((a, b) => new Date(a) - new Date(b))[0] || new Date();
+            return {
+              totalOldLoans: oldLoans.length,
+              estimatedAmount: totalPaidExcelAndSys + totalUnpaid,
+              totalPaid: totalPaidExcelAndSys,
+              dateSince: earliestDate,
+              remarks: `${oldLoans.length} ticket(s) recorded (Total Ticket Value: ₱${totalTicket.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`,
+              encodedBy: oldLoans[0]?.encodedBy?.name || oldLoans[0]?.encodedBy?.username || "Bookkeeper",
+            };
+          })() : null}
         />
       </AppLayout>
     );

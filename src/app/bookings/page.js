@@ -155,9 +155,9 @@ export default async function BookingsPage() {
     }
 
     try {
-      // 0. Enforce Old Loan gate: check if borrower has pre-existing old loans
-      const oldLoan = await db.oldLoan.findUnique({
-        where: { employeeId },
+      // 0. Enforce Old Loan gate: check if borrower has pre-existing unpaid old loans
+      const oldLoan = await db.oldLoan.findFirst({
+        where: { employeeId, unpaidBalance: { gt: 0 } },
       });
 
       if (oldLoan) {
